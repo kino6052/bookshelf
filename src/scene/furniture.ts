@@ -63,22 +63,24 @@ export function buildFurniture(room: Layout['room']): FurnitureBuild {
   }
 
   // Two long reading tables by the windows, centred in the room; the reading corner at the east end.
-  const tableW = 2.4
-  const gap = 0.9
-  table(-(tableW + gap) / 2 - 0.4, zTables, tableW, 0.9)
-  table((tableW + gap) / 2 - 0.4, zTables, tableW, 0.9)
+  // Tables span the floor between the west window corner and the reading corner.
+  const x0 = room.minX + 0.7
+  const x1 = room.maxX - 2.1
+  const gap = 0.5
+  const tableW = Math.min(2.4, (x1 - x0 - gap) / 2)
+  table(x0 + tableW / 2, zTables, tableW, 0.8)
+  table(x1 - tableW / 2, zTables, tableW, 0.8)
 
   const ex = room.maxX
-  armchair(ex - 1.55, room.maxZ - 0.75, Math.PI * 0.85)
-  armchair(ex - 0.6, room.maxZ - 1.5, Math.PI * 0.62)
+  armchair(ex - 1.25, room.maxZ - 0.6, Math.PI * 0.85)
+  armchair(ex - 0.55, room.maxZ - 1.3, Math.PI * 0.62)
   // Low side table between the chairs.
-  b.add(cyl, { x: ex - 0.75, y: 0.45, z: room.maxZ - 0.62, sx: 0.26, sy: 0.03, sz: 0.26 }, palette.furniture)
-  b.add(cyl, { x: ex - 0.75, y: 0.22, z: room.maxZ - 0.62, sx: 0.04, sy: 0.44, sz: 0.04 }, palette.furnitureDark)
-  colliders.push(box(ex - 0.75, room.maxZ - 0.62, 0.55, 0.55))
+  b.add(cyl, { x: ex - 0.45, y: 0.45, z: room.maxZ - 0.45, sx: 0.22, sy: 0.03, sz: 0.22 }, palette.furniture)
+  b.add(cyl, { x: ex - 0.45, y: 0.22, z: room.maxZ - 0.45, sx: 0.04, sy: 0.44, sz: 0.04 }, palette.furnitureDark)
+  colliders.push(box(ex - 0.45, room.maxZ - 0.45, 0.48, 0.48))
 
-  plant(room.minX + 0.45, room.maxZ - 0.45, 1.1)
-  plant(ex - 0.4, room.maxZ - 0.4, 0.9)
-  plant(ex - 2.6, room.maxZ - 0.4, 0.8)
+  plant(room.minX + 0.4, room.maxZ - 0.4, 1.0)
+  plant(ex - 0.35, room.maxZ - 2.15, 0.85)
 
   const mesh = staticMesh(b.build(), flatMaterial())
   mesh.name = 'furniture'

@@ -147,19 +147,20 @@ function makeRuns(length: number, stackCount: number, o: Required<Pick<LayoutOpt
   const sideStart = -hz + d + 0.05
   const sideEnd = hz - room.windowClearance
   const runs: Run[] = [
-    // West wall, facing +x, read south → north.
-    { kind: 'wall', sx: -hx + d / 2, sz: sideEnd, dx: 0, dz: -1, nx: 1, nz: 0, span: sideEnd - sideStart, align: 'end' },
-    // North wall, facing +z, read west → east.
-    { kind: 'wall', sx: -hx + d, sz: -hz + d / 2, dx: 1, dz: 0, nx: 0, nz: 1, span: length - 2 * d, align: 'center' },
+    // North wall first (it faces you as you come in), facing +z, read west → east from the west corner.
+    { kind: 'wall', sx: -hx + d, sz: -hz + d / 2, dx: 1, dz: 0, nx: 0, nz: 1, span: length - 2 * d, align: 'start' },
     // East wall, facing −x, read north → south.
     { kind: 'wall', sx: hx - d / 2, sz: sideStart, dx: 0, dz: 1, nx: -1, nz: 0, span: sideEnd - sideStart, align: 'start' },
+    // West wall, facing +x, read south → north.
+    { kind: 'wall', sx: -hx + d / 2, sz: sideEnd, dx: 0, dz: -1, nx: 1, nz: 0, span: sideEnd - sideStart, align: 'end' },
   ]
   // Freestanding double-sided stacks down the middle, running north–south.
   const stackDepth = 2 * d
   const pitch = stackDepth + bc.aisle
   const count = Math.min(stackCount, maxStacks(length, bc))
-  const stackLen = bc.stackSections * bc.boardWidth + bc.sidePanel
   const z0 = -hz + d + bc.aisle
+  const fit = Math.floor((hz - bc.tableZone - z0 - bc.sidePanel) / bc.boardWidth)
+  const stackLen = Math.max(1, Math.min(bc.stackSections, fit)) * bc.boardWidth + bc.sidePanel
   const used = count * stackDepth + Math.max(0, count - 1) * bc.aisle
   const x0 = -used / 2 + stackDepth / 2
   const stacks: AABB[] = []
@@ -235,6 +236,14 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
     else length = Math.round((length + growStep) * 1000) / 1000
     ;({ built, frames } = build())
   }
+  // Only build the bookcases the library needs, plus one spare section to grow into. Slots are fixed,
+  // so a growing library adds sections at the end without moving the ones already standing.
+  let keep = Math.max(2, Math.ceil(needed / bc.levels) + 1)
+  frames = frames.map((f) => {
+    const kept = f.slice(0, Math.max(0, keep))
+    keep -= kept.length
+    return kept
+  })
 
   const sections: SectionPlacement[] = []
   const runInfo: RunInfo[] = []

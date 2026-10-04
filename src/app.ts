@@ -4,7 +4,7 @@ import { config } from './config'
 import { REDUCED_MOTION } from './env'
 import { moveCircle } from './shared/collision'
 import { layout, type AABB, type Layout } from './shared/layout'
-import type { Library } from './shared/types'
+import type { Book, Library } from './shared/types'
 import { buildBookcases } from './scene/bookcases'
 import { BookShelves } from './scene/books'
 import { Engine } from './scene/engine'
@@ -26,9 +26,9 @@ export class App {
   layout!: Layout
   authoring = false
   colliders: AABB[] = []
-  readonly pose: Pose = { x: 0, z: 1.6, yaw: 0, pitch: -0.05 }
+  readonly pose: Pose = { x: -0.6, z: 0.35, yaw: 0.25, pitch: -0.05 }
   /** Movement input in [-1, 1]: forward and strafe-right; set by the input modules. */
-  readonly move = { forward: 0, right: 0, run: false }
+  readonly move = { forward: 0, right: 0, turn: 0, tilt: 0, run: false }
 
   private roomGroup?: THREE.Group
   private staticGroup = new THREE.Group()
@@ -74,12 +74,19 @@ export class App {
     this.staticGroup.add(buildBookcases(this.layout))
     this.colliders = [...this.roomColliders, ...this.layout.colliders]
     this.shelves.setLayout(this.layout, this.library, change)
+    this.bookIndex = new Map(this.library.shelves.flatMap((s) => s.books).map((b) => [b.id, b]))
+    this.onRebuild?.()
   }
 
   private roomColliders: AABB[] = []
+  private bookIndex = new Map<string, Book>()
+  /** Called after every rebuild (controllers refresh occluders, list view etc.). */
+  onRebuild?: () => void
 
   private frame(dt: number, t: number): void {
     const p = this.pose
+    // Keyboard turning (←/→) and looking up/down (PageUp/PageDown).
+    if (this.move.turn || this.move.tilt) this.setPose({ yaw: p.yaw - this.move.turn * 1.9 * dt, pitch: p.pitch + this.move.tilt * 1.2 * dt })
     if (this.move.forward || this.move.right) {
       const speed = this.move.run ? config.player.runSpeed : config.player.walkSpeed
       const len = Math.hypot(this.move.forward, this.move.right) || 1
@@ -107,6 +114,15 @@ export class App {
   /** Runs frame logic without the render loop (snapshots while the tab is hidden). */
   step(dt = 0): void {
     this.frame(dt, 0)
+  }
+
+  bookById(id: string): Book | undefined {
+    return this.bookIndex.get(id)
+  }
+
+  /** Nearest walkable spot to (x, z). */
+  safeSpot(x: number, z: number): { x: number; z: number } {
+    return moveCircle(x, z, 0, 0, config.player.radius, this.colliders)
   }
 
   setPose(pose: Partial<Pose>): void {

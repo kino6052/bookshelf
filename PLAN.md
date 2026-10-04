@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| Current milestone | M3 · Player and interaction |
-| Next action | M3.1 |
+| Current milestone | M3/M4 · interaction and reader |
+| Next action | M4.1 (state machine e2e), then M3.2/M3.3/M3.5/M3.6, M4.6, M4.7 fixtures |
 | Blockers | none |
-| Last updated | 2026-10-04 · M2 done except the M2.7 visual pass |
+| Last updated | 2026-10-04 · room halved, game controls, all formats open in dev |
 
 ---
 
@@ -237,12 +237,12 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
   *Accept:* `?stress=1000` (≈ 10 % website books) still meets the §3.7 budgets; a screenshot shows website books are distinguishable from paper books at a glance.
 
 ### M3 · Player and interaction
-- [ ] **M3.1** Enter overlay (title, controls, loading progress, load errors) and Help.
+- [x] **M3.1** Enter overlay (title, controls, loading progress, load errors) and Help.
 - [ ] **M3.2** Desktop controls, unlocked state (§3.3), collisions.
   *Accept:* e2e via `__bookshelf`: walking into a bookcase, a table and a wall never penetrates; sliding works.
 - [ ] **M3.3** Touch controls.
   *Accept:* Playwright touch emulation: the joystick moves the player; a tap on a book opens it; a drag doesn't.
-- [ ] **M3.4** Interaction ray (centre / cursor / touch), hover highlight + label, `E`/click select; works on instanced books.
+- [x] **M3.4** Interaction ray (centre / cursor / touch), hover highlight + label, `E`/click select; works on instanced books.
   *Accept:* e2e: teleport next to a book → hovered id and label match the manifest.
 - [ ] **M3.5** HUD (crosshair, music, list, help).
 - [ ] **M3.6** List view (filter, open, Locate) + no-WebGL fallback.
@@ -251,12 +251,12 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 ### M4 · Opening books and the reader
 - [ ] **M4.1** State machine + pull-out/return animation (+ reduced-motion variant).
   *Accept:* e2e: rapid clicks and Esc mid-animation end in a consistent state; the book is back in its slot.
-- [ ] **M4.2** Reader shell (dialog, focus trap, Esc, loading/error/abort, progress, TOC, font size, remembered position).
-- [ ] **M4.3** md + txt readers (sanitized, chunked).
+- [x] **M4.2** Reader shell (dialog, focus trap, Esc, loading/error/abort, progress, TOC, font size, remembered position).
+- [~] **M4.3** md + txt readers (sanitized, chunked).
   *Accept:* `<script>` and `onerror` in markdown are neutralised (test); a 5 MB txt opens without a long task over 200 ms.
-- [ ] **M4.4** pdf reader.
+- [~] **M4.4** pdf reader.
   *Accept:* opens the seed PDF in dev **and** `vite preview`; page jump works.
-- [ ] **M4.5** epub reader.
+- [~] **M4.5** epub reader.
   *Accept:* opens the seed EPUB in dev **and** `vite preview`; TOC navigation works.
 - [ ] **M4.6** Error paths: missing, corrupt and zero-byte files.
   *Accept:* a friendly error is shown and the scene keeps working.
@@ -317,7 +317,7 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 ## 7. Assumptions (the owner never specified these; proceed with them and override freely)
 
 1. **Music:** owner-supplied tracks in `music/`; shuffled loop with cross-fade; starts on Enter; mute/volume UI; ducks to ~40 % in the reader; procedural fallback when empty.
-2. **Scale:** designed for up to ~1000 books; typically a few hundred.
+2. **Scale:** the owner's library is **50–300 books** (owner, 2026-10-04). `?stress=1000` stays as the §3.7 robustness/budget test only; previews use the seed library (or `?stress=150`).
 3. **Furnishings:** as in §3.2 (two tables with stools, a small window corner, a few plants).
 4. **Hosting:** any static host; GitHub Pages-compatible via relative paths.
 5. **Site title:** "Library", set in `src/config.ts`.
@@ -353,6 +353,11 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Owner asked to go straight to the 3D scene; remaining M1.2 checks (watcher + dist) are deferred, not dropped | Owner instruction 2026-10-04 |
 | 2026-10-04 | Website books default to one pale-blue binding (`config.book.websiteColor`) instead of the hashed palette (a sidecar `spineColor` still wins) | At 1 cm thick a hashed colour made them indistinguishable from thin paper books; M2.8 requires recognisability at a glance |
 | 2026-10-04 | Labels use two texture atlases (spines 2048² with 512 slots of 32×256 px, plates 1024² with 64 slots) filled lazily within 9 m of the player via `copyTextureToTexture`, drawn on instanced quads (one draw call each) | Keeps §3.7 draw-call and texture budgets at 1000 books |
+| 2026-10-04 | Bookcases are built only as needed: `ceil(boards / 5) + 1` sections (min 2), in fixed slots so growth never moves standing sections. Wall order changed to north (W→E, from the west corner) → east (N→S) → west (S→N) → stacks | Owner: the library is 50–300 books and the preview shouldn't look like a big library; a room lined with ~19 empty bookcases looked wrong. North first so the books face you on entry |
+| 2026-10-04 | Room halved to 7 × 5.5 × 3.2 m (was 10 × 8 × 3.6); furniture refitted (two shorter tables, armchair corner, two plants); freestanding stacks are sized to stop short of the table zone | Owner: "twice as smaller space at least" |
+| 2026-10-04 | Controls are game-style: moving the mouse looks around (pointer lock; where the browser refuses it, a free-look fallback turns the view on plain mouse movement), W A S D walk/strafe, **Q / E turn**, ↑/↓ walk, ←/→ turn, PageUp/PageDown look up/down. Opening a book is click, **F** or Enter (not E as in §3.3) | Owner: keyboard-only movement and game-like mouse-look ("aswd and q e"); E is taken by turning |
+| 2026-10-04 | Frame callbacks run inside try/catch in `Engine.tick` | An exception in a three.js animation-loop callback stops the loop for good (§3.7: a bad book never crashes the scene) |
+| 2026-10-04 | `optimizeDeps.include` pre-bundles three, markdown-it, dompurify, pdfjs-dist and epubjs | Opening the first lazily-loaded reader in dev made Vite re-optimize deps and full-reload the page |
 
 ### Blockers
 *(none)*
@@ -376,6 +381,12 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | M2.5 | `?stress=1000` in the browser via `renderer.info` at 5 poses: 15–16 draw calls, 45–47k triangles, 5 textures (spine atlas 2048² ≈ 21 MB with mips, plate atlas 1024² ≈ 5.6 MB, shadow map 2048² depth 16 MB → ≈ 43 MB); 512 spine labels near the player, 33 plates; `docs/verification/m2-stress1000.png` |
 | 2026-10-04 | M2.6 | `src/scene/furniture.ts`: two reading tables + 12 stools, two armchairs + side table, three plants, each with an AABB collider; `docs/verification/m2-furniture-1.png`, `m2-furniture-2.png` |
 | 2026-10-04 | M2.8 | Website books: 1 cm thick, pale-blue binding, dark head band with a white globe, title + domain lines; `?stress=1000` (105 website books) still 16 draw calls; `docs/verification/m2-website-books.png` |
+| 2026-10-04 | M3.1 | Enter overlay (title, controls, progress bar, "17 books on 6 shelves", load-error + Retry path, "Browse as a list") seen in the pane; Help modal in `src/ui/help.ts` |
+| 2026-10-04 | M3.4 | Pane: `faceBook(id)` + `pickCenter()` → id `01-ancient/Plato - Apology.md`, label "Apology — Plato" at 1.14 m; website: "Stanford Encyclopedia of Philosophy — plato.stanford.edu ↗"; ray reach 3 m, stack-divider occlusion (`rayBoxDistance`) |
+| 2026-10-04 | M4.2 | Reader dialog (role=dialog, focus trap, Esc closes, title/author bar, progress, TOC, A−/A+, positions in localStorage via `store`), loading/error/empty states, fetch aborted on close; opened md/txt/pdf/epub/url in the dev pane |
+| 2026-10-04 | M4.3 (partial) | War and Peace txt (3.36 MB): 12,168 paragraphs rendered in ~0.6 s with **zero** long tasks (PerformanceObserver longtask), 779 TOC entries; md Apology: sanitized, 3 TOC entries. Still to do: sanitizer unit test, 5 MB file |
+| 2026-10-04 | M4.4 (dev) | Descartes PDF: 62 pages, worker `pdf.worker.min.mjs` loaded as its own file, page jump to 3 and 12 works ("p. 12 / 62"), virtualized canvases (3 live). `vite preview` check pending |
+| 2026-10-04 | M4.5 (dev) | Augustine EPUB from ArrayBuffer: 15 TOC entries, clicking "BOOK III" displays Book III; content iframe sandbox = `allow-same-origin` (no scripts). `vite preview` check pending |
 
 ### Ideas parking lot
 - Deep link to a book (`#/shelf/…/book/…`) so the owner can share "my copy of X".

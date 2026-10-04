@@ -103,6 +103,17 @@ describe('layout', () => {
     expect([...usedRuns].every((r) => l.runs[r]!.kind === 'wall')).toBe(true)
   })
 
+  it('builds only the bookcases a 50–300 book library needs, plus one spare, starting on the north wall', () => {
+    for (const n of [0, 17, 50, 150, 300]) {
+      const lib = makeStressLibrary(n)
+      const l = layout(lib, { authoring: false })
+      const levels = config.bookcase.levels
+      expect(l.sections.length, `N=${n}`).toBe(Math.max(2, Math.ceil(l.boardsUsed / levels) + 1))
+      expect(l.runs[0]!.nz).toBe(1) // north wall faces +z and comes first
+      expect(l.sections.every((s) => s.run === 0) || n > 300).toBe(true)
+    }
+  })
+
   it('moves on to freestanding stacks and grows the room when the walls are full', () => {
     const lib = manyShelves(400, 3)
     const l = layout(lib, { authoring: true })

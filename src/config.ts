@@ -5,10 +5,10 @@ export const config = {
 
   room: {
     /** Base length along x (the long window wall). Grows when bookcases need more room. */
-    length: 10,
+    length: 7,
     /** Depth along z (north wall to window wall). */
-    depth: 8,
-    height: 3.6,
+    depth: 5.5,
+    height: 3.2,
     wallThickness: 0.2,
     /** Clear floor kept in front of the windows (no wall bookcases reach into it). */
     windowClearance: 1.6,
@@ -28,8 +28,10 @@ export const config = {
     /** Gap kept in the corners so wall runs don't overlap. */
     cornerGap: 0.4,
     aisle: 1.4,
-    /** Freestanding stacks are this many sections long. */
+    /** Freestanding stacks are at most this many sections long (shorter in a shallow room). */
     stackSections: 3,
+    /** Floor kept clear for the reading tables in front of the windows (stacks stop short of it). */
+    tableZone: 2.3,
     /** Width reserved for the "+" slot in authoring mode. */
     plusSlotWidth: 0.05,
   },

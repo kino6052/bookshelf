@@ -8,6 +8,8 @@ const verifyDir = path.resolve('docs/verification')
 export default defineConfig({
   base: './',
   build: { target: 'es2022' },
+  // Pre-bundle the lazily imported reader libraries so opening the first book in dev never triggers a reload.
+  optimizeDeps: { include: ['three', 'markdown-it', 'dompurify', 'pdfjs-dist', 'epubjs'] },
   plugins: [
     bookshelfPlugin(),
     {

@@ -89,8 +89,20 @@ export class Engine {
     return document.hidden || this.contextLost
   }
 
+  /** Runs every frame callback once without rendering (tests drive time while the tab isn't painting). */
+  step(dt: number): void {
+    this.time += dt
+    for (const fn of this.frameFns) fn(dt, this.time)
+  }
+
   renderOnce(): void {
     this.renderer.render(this.scene, this.camera)
+  }
+
+  private errorCount = 0
+
+  private reportError(err: unknown): void {
+    if (this.errorCount++ < 5) console.error('[engine] frame error', err)
   }
 
   private tick(now: number): void {
@@ -98,8 +110,19 @@ export class Engine {
     const dt = Math.min(0.1, Math.max(0, (now - this.last) / 1000))
     this.last = now
     this.time += dt
-    for (const fn of this.frameFns) fn(dt, this.time)
-    this.renderer.render(this.scene, this.camera)
+    // An exception escaping here would stop three's animation loop for good: contain it per callback.
+    for (const fn of this.frameFns) {
+      try {
+        fn(dt, this.time)
+      } catch (err) {
+        this.reportError(err)
+      }
+    }
+    try {
+      this.renderer.render(this.scene, this.camera)
+    } catch (err) {
+      this.reportError(err)
+    }
     this.adaptResolution(dt * 1000)
   }
 
