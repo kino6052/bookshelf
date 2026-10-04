@@ -203,6 +203,10 @@ export class BookShelves {
     return this.plus.find((p) => p.shelfId === shelfId)
   }
 
+  isHidden(id: string): boolean {
+    return this.hidden.has(id)
+  }
+
   setHidden(id: string, hidden: boolean): void {
     if (hidden) this.hidden.add(id)
     else this.hidden.delete(id)

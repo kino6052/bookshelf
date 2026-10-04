@@ -54,7 +54,8 @@ export function installTestHook(app: App, parts: HookParts): void {
       app.syncCamera()
       return { ...app.pose }
     },
-    state: () => ({ opener: opener.state, openBook: opener.bookId, reader: reader.currentBook?.id, hidden: app.shelves.placementList.length }),
+    state: () => ({ opener: opener.state, openBook: opener.bookId, reader: reader.currentBook?.id, hiddenBooks: app.shelves.placementList.filter((p) => app.shelves.isHidden(p.bookId)).map((p) => p.bookId) }),
+    closeReader: () => reader.close(),
     info: () => ({ ...app.engine.renderer.info.render, memory: { ...app.engine.renderer.info.memory }, pixelRatio: app.engine.pixelRatio, frameMs: app.engine.frameMs }),
     layoutInfo: () => ({
       room: app.layout.room,

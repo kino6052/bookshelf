@@ -68,6 +68,10 @@ export const config = {
     maxPixelRatio: 2,
     targetFrameMs: 1000 / 55,
     labelRadius: 9,
+    /** Frosted window glass: blur as a mip level of the garden cube map (0 = clear glass, 4+ = milky). */
+    glassBlur: 1.3,
+    /** Size of each face of the garden cube map seen through the glass. */
+    glassResolution: 256,
   },
 
   audio: {

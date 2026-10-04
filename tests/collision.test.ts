@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { distanceToBox, moveCircle } from '../src/shared/collision'
+import { distanceToBox, findFreeSpot, moveCircle, overlapsAny } from '../src/shared/collision'
 import type { AABB } from '../src/shared/layout'
 
 const wall: AABB = { minX: -10, maxX: 10, minZ: -1.2, maxZ: -1 }
@@ -37,5 +37,19 @@ describe('moveCircle', () => {
     expect(p.z).toBeCloseTo(-4 + R, 5)
     const q = moveCircle(0.5, 1.5, 1, 0, R, [box])
     expect(distanceToBox(q.x, q.z, box)).toBeGreaterThanOrEqual(R - 1e-9)
+  })
+})
+
+describe('findFreeSpot', () => {
+  it('escapes a gap narrower than the player (stool next to a table)', () => {
+    const stool: AABB = { minX: -0.15, maxX: 0.15, minZ: 0.83, maxZ: 1.13 }
+    const table: AABB = { minX: -0.45, maxX: 1.4, minZ: 1.3, maxZ: 2.1 }
+    const p = findFreeSpot(0, 1.0, R, [stool, table])
+    expect(overlapsAny(p.x, p.z, R, [stool, table])).toBe(false)
+    expect(Math.hypot(p.x, p.z - 1)).toBeLessThan(1)
+  })
+
+  it('returns the point itself when it is already free', () => {
+    expect(findFreeSpot(5, 5, R, [box])).toEqual({ x: 5, z: 5 })
   })
 })

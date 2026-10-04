@@ -56,3 +56,27 @@ export function distanceToBox(x: number, z: number, b: AABB): number {
   if (dx === 0 && dz === 0) return -Math.min(x - b.minX, b.maxX - x, z - b.minZ, b.maxZ - z)
   return Math.hypot(dx, dz)
 }
+
+export function overlapsAny(x: number, z: number, r: number, boxes: readonly AABB[]): boolean {
+  return boxes.some((b) => distanceToBox(x, z, b) < r - 1e-6)
+}
+
+/**
+ * Nearest position to (x, z) where a circle of radius r overlaps nothing: push-out first, then a ring
+ * search for spots push-out can't reach (e.g. dropped between a stool and a table that are closer than 2r).
+ */
+export function findFreeSpot(x: number, z: number, r: number, boxes: readonly AABB[]): { x: number; z: number } {
+  const p = resolveCircle(x, z, r, boxes, 8)
+  if (!overlapsAny(p.x, p.z, r, boxes)) return p
+  for (let ring = 1; ring <= 40; ring++) {
+    const rad = ring * 0.1
+    const steps = 8 + ring * 4
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2
+      const cx = x + Math.cos(a) * rad
+      const cz = z + Math.sin(a) * rad
+      if (!overlapsAny(cx, cz, r, boxes)) return { x: cx, z: cz }
+    }
+  }
+  return p
+}

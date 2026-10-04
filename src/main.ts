@@ -3,7 +3,7 @@ import './ui/ui.css'
 import { App } from './app'
 import { Controller } from './controller'
 import { loadLibrary, onLibraryEvent } from './data/library'
-import { REDUCED_MOTION, TEST_HOOKS } from './env'
+import { FORCE_NO_WEBGL, REDUCED_MOTION, TEST_HOOKS } from './env'
 import { installTestHook } from './dev/hook'
 import { isTouchDevice } from './input/touch'
 import { Reader } from './reader/reader'
@@ -57,7 +57,7 @@ async function boot(): Promise<void> {
     const reopen = h('button', { class: 'btn btn-primary fallback-open', type: 'button', onclick: () => (reopen.remove(), list.show()) }, 'Show the list')
     list.show()
   }
-  if (!webgl2Available()) return fallback('This browser can’t show the 3D room (WebGL2 is not available).')
+  if (FORCE_NO_WEBGL || !webgl2Available()) return fallback('This browser can’t show the 3D room (WebGL2 is not available).')
   let app: App
   try {
     overlay.progress(0.5, 'Building the room…')
@@ -123,4 +123,9 @@ async function boot(): Promise<void> {
   if (TEST_HOOKS) installTestHook(app, { controller, reader, opener, list, overlay })
 }
 
+function applyMotionPreference(): void {
+  document.documentElement.classList.toggle('reduced-motion', REDUCED_MOTION)
+}
+
+applyMotionPreference()
 void boot()

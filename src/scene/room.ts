@@ -12,7 +12,7 @@ export interface RoomBuild {
   windows: { minX: number; maxX: number }[]
 }
 
-export function buildRoom(room: Layout['room']): RoomBuild {
+export function buildRoom(room: Layout['room'], glassMaterial: THREE.Material): RoomBuild {
   const L = room.length
   const D = room.depth
   const H = room.height
@@ -76,6 +76,19 @@ export function buildRoom(room: Layout['room']): RoomBuild {
   mesh.name = 'room-shell'
   group.add(mesh)
 
+  // Frosted glass across the whole opening (see frosted.ts). It casts no shadow, so the sun patches stay.
+  const glassH = H - header - sill
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(span + 0.1, glassH + 0.1), glassMaterial)
+  glass.name = 'window-glass'
+  // Behind every mullion, transom and ledge (their back faces are at zS + 0.05), still inside the wall opening.
+  glass.position.set(0, sill + glassH / 2, zS + 0.07)
+  glass.rotation.y = Math.PI
+  glass.castShadow = false
+  glass.receiveShadow = false
+  glass.matrixAutoUpdate = false
+  glass.updateMatrix()
+  group.add(glass)
+
   const big = 2
   const colliders: AABB[] = [
     { minX: -L / 2 - big, maxX: L / 2 + big, minZ: -D / 2 - big, maxZ: -D / 2 }, // north
@@ -91,6 +104,7 @@ export function buildLights(room: Layout['room']): { group: THREE.Group; sun: TH
   const group = new THREE.Group()
   group.name = 'lights'
   const hemi = new THREE.HemisphereLight('#eef4fb', '#ebe9e4', 3.1)
+  hemi.layers.enableAll()
   group.add(hemi)
 
   const sun = new THREE.DirectionalLight('#fff3dc', 5.2)
@@ -99,6 +113,7 @@ export function buildLights(room: Layout['room']): { group: THREE.Group; sun: TH
   sun.position.copy(dir.clone().multiplyScalar(30))
   sun.target.position.set(0, 0, 0)
   sun.castShadow = true
+  sun.layers.enableAll()
   sun.shadow.mapSize.set(2048, 2048)
   sun.shadow.bias = -0.0004
   sun.shadow.normalBias = 0.03

@@ -23,8 +23,10 @@ export const palette = {
   crown: '#5e9b5a',
   crownLight: '#79b46a',
   cloud: '#ffffff',
-  skyTop: '#8fbde6',
-  skyHorizon: '#eaf2f6',
+  skyTop: '#a7c6de',
+  /** The garden sits in a soft mist; the sky's horizon matches it so the two blend. */
+  fog: '#e3e9ea',
+  skyHorizon: '#e3e9ea',
   pages: '#efe8d6',
   plate: '#f8f7f3',
   plateText: '#3b3a36',

@@ -18,7 +18,7 @@ function skyDome(): THREE.Mesh {
   const c = new THREE.Color()
   for (let i = 0; i < pos.count; i++) {
     const h = Math.max(0, pos.getY(i) / 600)
-    c.copy(horizon).lerp(top, Math.pow(h, 0.6))
+    c.copy(horizon).lerp(top, THREE.MathUtils.smoothstep(h, 0.08, 0.75))
     colors.set([c.r, c.g, c.b], i * 3)
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
@@ -69,15 +69,15 @@ function hills(rand: () => number): THREE.Mesh {
   const ico = new THREE.IcosahedronGeometry(1, 1)
   for (let i = 0; i < 16; i++) {
     const angle = -Math.PI * 0.05 + (i / 15) * Math.PI * 1.1 // mostly south (+z), wrapping round the sides
-    const dist = 110 + rand() * 90
-    const r = 30 + rand() * 40
-    const far = dist > 160
-    b.add(ico, { x: Math.cos(angle) * dist * 1.3, y: -r * 0.72, z: Math.sin(angle) * dist, sx: r * 1.6, sy: r, sz: r }, far ? palette.hillFar : palette.hill)
+    const dist = 55 + rand() * 50
+    const r = 18 + rand() * 22
+    const far = dist > 85
+    b.add(ico, { x: Math.cos(angle) * dist * 1.2, y: -r * 0.72, z: Math.sin(angle) * dist, sx: r * 1.6, sy: r, sz: r }, far ? palette.hillFar : palette.hill)
   }
   for (let i = 0; i < 10; i++) {
     const angle = Math.PI + (i / 9) * Math.PI
-    const dist = 150 + rand() * 60
-    const r = 35 + rand() * 30
+    const dist = 70 + rand() * 40
+    const r = 20 + rand() * 20
     b.add(ico, { x: Math.cos(angle) * dist, y: -r * 0.75, z: Math.sin(angle) * dist, sx: r * 1.5, sy: r, sz: r }, palette.hillFar)
   }
   const mesh = staticMesh(b.build(), flatMaterial({ fog: true }), { cast: false, receive: false })

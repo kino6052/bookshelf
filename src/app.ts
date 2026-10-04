@@ -2,14 +2,16 @@
 import * as THREE from 'three'
 import { config } from './config'
 import { REDUCED_MOTION } from './env'
-import { moveCircle } from './shared/collision'
+import { findFreeSpot, moveCircle } from './shared/collision'
 import { layout, type AABB, type Layout } from './shared/layout'
 import type { Book, Library } from './shared/types'
 import { buildBookcases } from './scene/bookcases'
 import { BookShelves } from './scene/books'
 import { Engine } from './scene/engine'
+import { FrostedGlass, moveToOutsideLayer } from './scene/frosted'
 import { buildOutside, type Outside } from './scene/outside'
 import { buildFurniture } from './scene/furniture'
+import { palette } from './scene/palette'
 import { buildLights, buildRoom, fitShadowCamera } from './scene/room'
 
 export interface Pose {
@@ -34,17 +36,22 @@ export class App {
   private staticGroup = new THREE.Group()
   private outside?: Outside
   private sun?: THREE.DirectionalLight
+  readonly glass = new FrostedGlass(!REDUCED_MOTION)
 
   constructor(container: HTMLElement, library: Library) {
     this.engine = new Engine(container)
     this.library = library
     this.shelves = new BookShelves(this.engine.renderer, { reducedMotion: REDUCED_MOTION })
-    this.engine.scene.fog = new THREE.Fog('#e6eef3', 80, 420)
+    this.engine.scene.fog = new THREE.Fog(palette.fog, 6, 80)
+    this.engine.scene.background = new THREE.Color(palette.fog)
     this.engine.scene.add(this.staticGroup, this.shelves.group)
     this.rebuild()
     this.engine.onFrame((dt, t) => this.frame(dt, t))
     this.engine.onContextChange = (lost) => {
-      if (!lost) this.shelves.invalidateLabels()
+      if (!lost) {
+        this.shelves.invalidateLabels()
+        this.glass.invalidate()
+      }
     }
   }
 
@@ -58,9 +65,12 @@ export class App {
         disposeTree(this.roomGroup)
       }
       const g = new THREE.Group()
-      const room = buildRoom(this.layout.room)
+      const room = buildRoom(this.layout.room, this.glass.material)
       const lights = buildLights(this.layout.room)
       this.outside = buildOutside(this.layout.room.length / 2, this.layout.room.depth / 2, REDUCED_MOTION)
+      // The garden is only ever seen through the frosted glass, which samples a captured cube map of it.
+      moveToOutsideLayer(this.outside.group)
+      this.glass.setCenter(0, config.player.eyeHeight, 0)
       const furniture = buildFurniture(this.layout.room)
       g.add(room.group, lights.group, this.outside.group, furniture.mesh)
       this.sun = lights.sun
@@ -101,6 +111,7 @@ export class App {
     }
     this.syncCamera()
     this.outside?.update(dt, t)
+    this.glass.update(dt, this.engine.renderer, this.engine.scene)
     this.shelves.update(dt, this.engine.camera.position)
   }
 
@@ -122,14 +133,14 @@ export class App {
 
   /** Nearest walkable spot to (x, z). */
   safeSpot(x: number, z: number): { x: number; z: number } {
-    return moveCircle(x, z, 0, 0, config.player.radius, this.colliders)
+    return findFreeSpot(x, z, config.player.radius, this.colliders)
   }
 
   setPose(pose: Partial<Pose>): void {
     Object.assign(this.pose, pose)
     const maxPitch = THREE.MathUtils.degToRad(config.player.maxPitchDeg)
     this.pose.pitch = THREE.MathUtils.clamp(this.pose.pitch, -maxPitch, maxPitch)
-    const safe = moveCircle(this.pose.x, this.pose.z, 0, 0, config.player.radius, this.colliders)
+    const safe = findFreeSpot(this.pose.x, this.pose.z, config.player.radius, this.colliders)
     this.pose.x = safe.x
     this.pose.z = safe.z
   }

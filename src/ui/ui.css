@@ -673,3 +673,8 @@ kbd {
     display: none;
   }
 }
+.reduced-motion .reader-root,
+.reduced-motion .toast,
+.reduced-motion .progress-fill {
+  transition: none;
+}
