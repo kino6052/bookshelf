@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| Current milestone | M2 · Scene and layout |
-| Next action | M2.1 |
+| Current milestone | M3 · Player and interaction |
+| Next action | M3.1 |
 | Blockers | none |
-| Last updated | 2026-10-04 · M1 mostly done; jumping to 3D per owner |
+| Last updated | 2026-10-04 · M2 done except the M2.7 visual pass |
 
 ---
 
@@ -223,17 +223,17 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
   *Accept:* ≥ 2 website books on different shelves, each with a valid `target`.
 
 ### M2 · Scene and layout
-- [ ] **M2.1** Renderer, loop, resize, dynamic resolution, context loss/restore, pause when hidden.
-- [ ] **M2.2** Room shell: floor, walls, ceiling, window openings with mullions (§3.2).
-- [ ] **M2.3** Sun + shadows through the windows, hemisphere fill, sky, garden (lawn, swaying trees, hills, clouds).
+- [x] **M2.1** Renderer, loop, resize, dynamic resolution, context loss/restore, pause when hidden.
+- [x] **M2.2** Room shell: floor, walls, ceiling, window openings with mullions (§3.2).
+- [x] **M2.3** Sun + shadows through the windows, hemisphere fill, sky, garden (lawn, swaying trees, hills, clouds).
   *Accept:* screenshots from 3 fixed poses show sun patches on the floor and the garden through the windows; whites aren't clipped.
 - [x] **M2.4** Layout engine + tests (§3.2).
   *Accept:* for 0 / 1 / 30 / 300 / 1000 books: deterministic, no overlaps, no dropped books, aisles ≥ 1.2 m, authoring reserve honoured.
-- [ ] **M2.5** Bookcases, name plates, spines (instancing + lazy label textures; long-title fit; Unicode).
+- [x] **M2.5** Bookcases, name plates, spines (instancing + lazy label textures; long-title fit; Unicode).
   *Accept:* `?stress=1000` meets the §3.7 budgets by `renderer.info`.
-- [ ] **M2.6** Furniture, plants, colliders.
+- [x] **M2.6** Furniture, plants, colliders.
 - [ ] **M2.7** One time-boxed visual pass: light balance, palette, tidy composition. *(Optional: thin emissive light strips for the "futuristic" feel.)*
-- [ ] **M2.8** Website-book spines and covers (§3.2): slim, globe glyph, domain line. *(Functional: recognisability, not polish.)*
+- [x] **M2.8** Website-book spines and covers (§3.2): slim, globe glyph, domain line. *(Functional: recognisability, not polish.)*
   *Accept:* `?stress=1000` (≈ 10 % website books) still meets the §3.7 budgets; a screenshot shows website books are distinguishable from paper books at a glance.
 
 ### M3 · Player and interaction
@@ -351,6 +351,8 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Books with no author sort after books with one (within the same meta.order) | §3.1 doesn't say where authorless books go |
 | 2026-10-04 | Shelving order: boards fill top → bottom within a section, sections left → right along a run (standard library shelving). Runs: west wall (S→N), north wall (W→E), east wall (N→S), then stacks (west face N→S, east face S→N). Stacks are added only when the walls are full; the room grows one stack pitch at a time after that | §3.2 gives "left → right, then the next wall or stack" but not the order of boards within a bookcase |
 | 2026-10-04 | Owner asked to go straight to the 3D scene; remaining M1.2 checks (watcher + dist) are deferred, not dropped | Owner instruction 2026-10-04 |
+| 2026-10-04 | Website books default to one pale-blue binding (`config.book.websiteColor`) instead of the hashed palette (a sidecar `spineColor` still wins) | At 1 cm thick a hashed colour made them indistinguishable from thin paper books; M2.8 requires recognisability at a glance |
+| 2026-10-04 | Labels use two texture atlases (spines 2048² with 512 slots of 32×256 px, plates 1024² with 64 slots) filled lazily within 9 m of the player via `copyTextureToTexture`, drawn on instanced quads (one draw call each) | Keeps §3.7 draw-call and texture budgets at 1000 books |
 
 ### Blockers
 *(none)*
@@ -368,6 +370,12 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | M1.6 | `npm test`: tests/linkfile.test.ts (BOM, CRLF/LF, key case, missing URL=, javascript:/data:/file:/credentials/over-long rejected with warnings, IDN, rejected links absent from the manifest JSON, ~10% website books in stress) |
 | 2026-10-04 | M1.7 | `04-empiricists/IEP - Internet Encyclopedia of Philosophy.url` → https://iep.utm.edu/ and `06-everything-else/SEP - Stanford Encyclopedia of Philosophy.url` → https://plato.stanford.edu/; both 200 with no X-Frame-Options/CSP (embed: iframe sidecars) |
 | 2026-10-04 | M2.4 | `npm test`: tests/layout.test.ts (17 tests: N=0/1/30/300/1000 × authoring on/off deterministic, no overlaps, no dropped books, 1.2 m aisle clearance, plus slots, room growth + stacks with 400 shelves, add-a-book stability) |
+| 2026-10-04 | M2.1 | `src/scene/engine.ts`: ResizeObserver + orientationchange resize; dynamic pixel ratio observed moving 1 → 1.5 in the pane; `WEBGL_lose_context` lose/restore in the browser: `contextLost` true while lost, rendering resumes and 512 spine labels are redrawn (`docs/verification/m2-after-context-restore.png`); loop paused while `document.hidden` (pane hidden: frame counter stopped) |
+| 2026-10-04 | M2.2 | `src/scene/room.ts`: 10 × 8 × 3.6 m shell, tiled floor, south wall of floor-to-ceiling glazing with mullions + transom; screenshots below |
+| 2026-10-04 | M2.3 | 3 fixed poses: `docs/verification/m2-pose1-windows.png` (sun patches with mullion shadows, garden), `m2-pose2-shelves.png`, `m2-pose3-room.png`; NeutralToneMapping, whites not clipped (floor in sun reads cream, not pure white) |
+| 2026-10-04 | M2.5 | `?stress=1000` in the browser via `renderer.info` at 5 poses: 15–16 draw calls, 45–47k triangles, 5 textures (spine atlas 2048² ≈ 21 MB with mips, plate atlas 1024² ≈ 5.6 MB, shadow map 2048² depth 16 MB → ≈ 43 MB); 512 spine labels near the player, 33 plates; `docs/verification/m2-stress1000.png` |
+| 2026-10-04 | M2.6 | `src/scene/furniture.ts`: two reading tables + 12 stools, two armchairs + side table, three plants, each with an AABB collider; `docs/verification/m2-furniture-1.png`, `m2-furniture-2.png` |
+| 2026-10-04 | M2.8 | Website books: 1 cm thick, pale-blue binding, dark head band with a white globe, title + domain lines; `?stress=1000` (105 website books) still 16 draw calls; `docs/verification/m2-website-books.png` |
 
 ### Ideas parking lot
 - Deep link to a book (`#/shelf/…/book/…`) so the owner can share "my copy of X".

@@ -44,6 +44,8 @@ export const config = {
     minDepth: 0.15,
     maxDepth: 0.22,
     websiteThickness: 0.01,
+    /** Website books share one pale-blue binding so they read as links at a glance. */
+    websiteColor: '#cfe2ee',
     gap: 0.002,
     palette: ['#2f3e5c', '#6e2a35', '#2f4f3a', '#b08a3e', '#3a3d42', '#e6dcc3', '#2c6466', '#a8553a'],
   },

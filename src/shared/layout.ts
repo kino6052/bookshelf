@@ -107,8 +107,10 @@ export function bookSize(book: Pick<Book, 'id' | 'bytes' | 'format'>): { thickne
   return { thickness, height, depth }
 }
 
-export function spineColor(book: Pick<Book, 'id' | 'spineColor'>): string {
-  return book.spineColor ?? BK.palette[hashString(book.id) % BK.palette.length]!
+export function spineColor(book: Pick<Book, 'id' | 'spineColor' | 'format'>): string {
+  if (book.spineColor) return book.spineColor
+  if (book.format === 'url') return BK.websiteColor
+  return BK.palette[hashString(book.id) % BK.palette.length]!
 }
 
 export function boardHeights(levels = BC.levels): number[] {
