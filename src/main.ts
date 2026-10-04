@@ -1,3 +1,4 @@
+import { onLibraryEvent } from './data/library'
 import * as THREE from 'three'
 
 const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -22,3 +23,7 @@ renderer.setAnimationLoop((t) => {
     return res.json()
   },
 }
+
+const w = window as unknown as { __libEvents: number }
+w.__libEvents = 0
+onLibraryEvent(() => { w.__libEvents++ })

@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| Current milestone | M1 · Library pipeline |
-| Next action | M1.1 |
+| Current milestone | M2 · Scene and layout |
+| Next action | M2.1 |
 | Blockers | none |
-| Last updated | 2026-10-04 · M0 done |
+| Last updated | 2026-10-04 · M1 mostly done; jumping to 3D per owner |
 
 ---
 
@@ -208,18 +208,18 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
   *Accept:* `npm test` passes; the smoke check passes in the built-in browser; screenshot at `docs/verification/m0-smoke.png`.
 
 ### M1 · Library pipeline (no 3D)
-- [ ] **M1.1** `scanLibrary()` + fixtures + unit tests (§3.1).
+- [x] **M1.1** `scanLibrary()` + fixtures + unit tests (§3.1).
   *Accept:* tests cover ordering, metadata precedence, ignored files, names with spaces/Unicode/`#`/`%`/`&`, empty shelf, bad sidecar JSON, one-level-only folders, root-level files ignored.
-- [ ] **M1.2** Vite plugin: dev serves `/library.json`, `/books/*`, `/music/*` (Range support); watcher with stable-size wait, debounce and the `bookshelf:library` HMR event; build emits `library.json` and copies both folders to `dist/`.
+- [~] **M1.2** Vite plugin: dev serves `/library.json`, `/books/*`, `/music/*` (Range support); watcher with stable-size wait, debounce and the `bookshelf:library` HMR event; build emits `library.json` and copies both folders to `dist/`.
   *Accept:* with `npm run dev` running, copying a large PDF into a shelf updates `/library.json` once, only after the copy completes, with no full page reload; `dist/` contains the books and the manifest.
-- [ ] **M1.3** Client loader: fetch, validate, diff (added / removed / changed) + tests.
-- [ ] **M1.4** Seed library (§8).
+- [x] **M1.3** Client loader: fetch, validate, diff (added / removed / changed) + tests.
+- [x] **M1.4** Seed library (§8).
   *Accept:* ≥ 4 shelves, ≥ 10 books, all four formats; every file opens directly in a browser tab via its manifest URL.
-- [ ] **M1.5** `?stress=N` synthetic library (dev and e2e builds only).
+- [x] **M1.5** `?stress=N` synthetic library (dev and e2e builds only).
   *Accept:* N = 0, 1, 30, 300, 1000 give valid manifests.
-- [ ] **M1.6** Website books in the scanner and manifest (§3.1): `.url` / `.webloc` parsing, http(s)-only target validation, domain-as-author fallback, `embed` from the sidecar. Extend `?stress=N` so ~10 % of synthetic books are website books.
+- [x] **M1.6** Website books in the scanner and manifest (§3.1): `.url` / `.webloc` parsing, http(s)-only target validation, domain-as-author fallback, `embed` from the sidecar. Extend `?stress=N` so ~10 % of synthetic books are website books.
   *Accept:* unit tests: BOM, CRLF/LF, odd key case, missing `URL=`; `javascript:` / `data:` / `file:` / credentials-in-URL / over-long URLs rejected with a warning; IDN hostnames; a rejected link never appears in the manifest.
-- [ ] **M1.7** Seed website books (§8).
+- [x] **M1.7** Seed website books (§8).
   *Accept:* ≥ 2 website books on different shelves, each with a valid `target`.
 
 ### M2 · Scene and layout
@@ -227,7 +227,7 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 - [ ] **M2.2** Room shell: floor, walls, ceiling, window openings with mullions (§3.2).
 - [ ] **M2.3** Sun + shadows through the windows, hemisphere fill, sky, garden (lawn, swaying trees, hills, clouds).
   *Accept:* screenshots from 3 fixed poses show sun patches on the floor and the garden through the windows; whites aren't clipped.
-- [ ] **M2.4** Layout engine + tests (§3.2).
+- [x] **M2.4** Layout engine + tests (§3.2).
   *Accept:* for 0 / 1 / 30 / 300 / 1000 books: deterministic, no overlaps, no dropped books, aisles ≥ 1.2 m, authoring reserve honoured.
 - [ ] **M2.5** Bookcases, name plates, spines (instancing + lazy label textures; long-title fit; Unicode).
   *Accept:* `?stress=1000` meets the §3.7 budgets by `renderer.info`.
@@ -347,6 +347,10 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Screenshots of the 3D view are saved by a dev-server-only endpoint (`POST /__verify/snapshot`, called from `__bookshelf.snapshot(name)`) that writes the canvas to `docs/verification/<name>.png`. DOM-only states are described in the Evidence log | The browser pane's screenshots aren't files on disk; §0.3 wants screenshot paths |
 | 2026-10-04 | Toolchain: Vite 8, TypeScript 7, Vitest 5, three r186 (latest at bootstrap) | Latest stable releases; nothing in §3.8 pins versions |
 | 2026-10-04 | Dev and preview servers bind to `127.0.0.1` (launch configs and `preview:e2e`) | Vite bound only to `::1` on this machine and the browser pane couldn't reach it |
+| 2026-10-04 | Seed: Descartes is *Discourse on the Method* (no English *Meditations* in the PG catalogue); no Leibniz (no English *Monadology* on PG). Both PDFs are typeset from PG text by `scripts/seed/pdf.mjs` (Times, WinAnsi, /Info title+author) | §8 asks for a multi-page PDF; PG has no PDFs of these works |
+| 2026-10-04 | Books with no author sort after books with one (within the same meta.order) | §3.1 doesn't say where authorless books go |
+| 2026-10-04 | Shelving order: boards fill top → bottom within a section, sections left → right along a run (standard library shelving). Runs: west wall (S→N), north wall (W→E), east wall (N→S), then stacks (west face N→S, east face S→N). Stacks are added only when the walls are full; the room grows one stack pitch at a time after that | §3.2 gives "left → right, then the next wall or stack" but not the order of boards within a bookcase |
+| 2026-10-04 | Owner asked to go straight to the 3D scene; remaining M1.2 checks (watcher + dist) are deferred, not dropped | Owner instruction 2026-10-04 |
 
 ### Blockers
 *(none)*
@@ -356,6 +360,14 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 |---|---|---|
 | 2026-10-04 | M0.1 | `npm run build` OK (vite 8.3.2); `vite preview --host 127.0.0.1` in the built-in browser shows the rotating cube; `__bookshelf.info()` frame counter advances, 1 draw call / 12 triangles |
 | 2026-10-04 | M0.2 | `npm test` 4/4 pass (tests/names.test.ts); browser-pane smoke check against `vite preview`: 31 frames in 0.5 s; screenshot `docs/verification/m0-smoke.png` saved via `__bookshelf.snapshot('m0-smoke')` |
+| 2026-10-04 | M1.1 | `npm test`: tests/scan.test.ts (13 tests: ordering, metadata precedence, ignored files, spaces/Unicode/#/%/& names, empty shelf, bad sidecar, one-level folders, root files ignored, music) |
+| 2026-10-04 | M1.2 (partial) | dev-temp server: `/library.json` lists 6 shelves / 17 books; every manifest URL answers `Range: bytes=0-15` with 206 + correct Content-Range/Content-Type and file magic bytes. Still to check: large-copy watcher event, no full reload, `dist/` contents |
+| 2026-10-04 | M1.3 | `npm test`: tests/library.test.ts (validate passes good manifests, skips 12+ malformed entries without throwing; diff added/removed/changed/shelf/track changes); client loader `src/data/library.ts` |
+| 2026-10-04 | M1.4 | `node scripts/seed/build-seed.mjs <cache>`: 6 shelves, 15 books (md, txt incl. War and Peace 3.36 MB, 2 generated multi-page PDFs, multi-chapter EPUBs), 9.2 MB; licences in `books/SOURCES.md`; every file fetched via its manifest URL in the browser (206 + magic bytes) |
+| 2026-10-04 | M1.5 | `npm test`: makeStressLibrary N=0/1/30/300/1000 validate with zero warnings, exactly N books, deterministic; gated by `TEST_HOOKS` in `src/data/library.ts` |
+| 2026-10-04 | M1.6 | `npm test`: tests/linkfile.test.ts (BOM, CRLF/LF, key case, missing URL=, javascript:/data:/file:/credentials/over-long rejected with warnings, IDN, rejected links absent from the manifest JSON, ~10% website books in stress) |
+| 2026-10-04 | M1.7 | `04-empiricists/IEP - Internet Encyclopedia of Philosophy.url` → https://iep.utm.edu/ and `06-everything-else/SEP - Stanford Encyclopedia of Philosophy.url` → https://plato.stanford.edu/; both 200 with no X-Frame-Options/CSP (embed: iframe sidecars) |
+| 2026-10-04 | M2.4 | `npm test`: tests/layout.test.ts (17 tests: N=0/1/30/300/1000 × authoring on/off deterministic, no overlaps, no dropped books, 1.2 m aisle clearance, plus slots, room growth + stacks with 400 shelves, add-a-book stability) |
 
 ### Ideas parking lot
 - Deep link to a book (`#/shelf/…/book/…`) so the owner can share "my copy of X".
