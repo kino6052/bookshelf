@@ -1,0 +1,9 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"], "port": 5173 },
+    { "name": "preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview", "--", "--host", "127.0.0.1", "--port", "4173", "--strictPort"], "port": 4173 },
+    { "name": "preview-e2e", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview:e2e"], "port": 4174 },
+    { "name": "dev-temp", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:temp"], "port": 5175 }
+  ]
+}

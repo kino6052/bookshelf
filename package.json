@@ -1,0 +1,37 @@
+{
+  "name": "bookshelf",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A walkable low-poly personal library",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:e2e": "vite build --mode e2e --outDir dist-e2e",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "preview:e2e": "vite preview --outDir dist-e2e --host 127.0.0.1 --port 4174 --strictPort",
+    "dev:temp": "node scripts/dev-temp.mjs"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.16",
+    "epubjs": "^0.3.93",
+    "markdown-it": "^15.0.2",
+    "pdfjs-dist": "^6.4.299",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.2.0",
+    "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
+    "axe-core": "^4.13.0",
+    "chokidar": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}
