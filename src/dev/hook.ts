@@ -71,10 +71,22 @@ export function installTestHook(app: App, parts: HookParts): void {
       for (let i = 0; i < n; i++) app.engine.step(dt)
     },
     /** Renders a frame and saves the canvas to docs/verification/<name>.png (dev/preview servers only). */
-    async snapshot(name: string) {
+    async snapshot(name: string, width = 1280, height = 800) {
+      // Fixed size, so snapshots work even while the pane is hidden (the canvas collapses then).
+      const r = app.engine.renderer
+      const cam = app.engine.camera
+      const prev = r.getSize(new (await import('three')).Vector2())
+      const prevRatio = r.getPixelRatio()
+      r.setPixelRatio(1)
+      r.setSize(width, height, false)
+      cam.aspect = width / height
+      cam.updateProjectionMatrix()
       for (let i = 0; i < 40; i++) app.engine.step(0)
       app.engine.renderOnce()
       const data = app.engine.canvas.toDataURL('image/png')
+      r.setPixelRatio(prevRatio)
+      r.setSize(Math.max(1, prev.x), Math.max(1, prev.y), false)
+      app.engine.resize()
       const res = await fetch(`__verify/snapshot?name=${encodeURIComponent(name)}`, { method: 'POST', body: data })
       return res.json()
     },

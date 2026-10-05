@@ -22,8 +22,8 @@ export const config = {
     levels: 3,
     lowestBoard: 1.0,
     levelSpacing: 0.38,
-    boardThickness: 0.03,
-    sidePanel: 0.03,
+    boardThickness: 0.04,
+    sidePanel: 0.04,
     /** Width reserved for the "+" slot in authoring mode. */
     plusSlotWidth: 0.05,
   },

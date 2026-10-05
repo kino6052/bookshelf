@@ -106,15 +106,15 @@ export function buildRoom(room: Layout['room'], glassMaterial: THREE.Material): 
  */
 function buildBlinds(windows: RoomBuild['windows'], depth: number, top: number, sill: number): THREE.Mesh {
   const b = new GeometryBuilder()
-  const z = depth / 2 - 0.05
-  const drops = [0.55, 0.38, 0.62, 0.45, 0.3, 0.5, 0.42]
-  windows.forEach((w, i) => {
-    const width = w.maxX - w.minX - 0.03
+  const z = depth / 2 - 0.07
+  // Chunky slats over the whole pane, from the head rail down to the sill, tilted open.
+  windows.forEach((w) => {
+    const width = w.maxX - w.minX - 0.02
     const cx = (w.minX + w.maxX) / 2
-    const bottom = Math.max(sill + 0.4, top - (top - sill) * drops[i % drops.length]!)
-    b.box(cx, top - 0.025, z, width + 0.02, 0.05, 0.06, palette.blind)
-    for (let y = top - 0.07; y > bottom; y -= 0.055) b.add(UNIT_BOX, { x: cx, y, z, sx: width, sy: 0.004, sz: 0.042, rotX: -0.45 }, palette.blind)
-    b.box(cx, bottom - 0.012, z, width, 0.024, 0.045, palette.blind)
+    const bottom = sill + 0.06
+    b.box(cx, top - 0.045, z - 0.01, width + 0.02, 0.09, 0.1, palette.blind)
+    for (let y = top - 0.13; y > bottom + 0.04; y -= 0.075) b.add(UNIT_BOX, { x: cx, y, z, sx: width, sy: 0.007, sz: 0.08, rotX: -0.5 }, palette.blind)
+    b.box(cx, bottom, z, width, 0.035, 0.07, palette.blind)
   })
   const mesh = staticMesh(b.build(), flatMaterial(), { cast: true, receive: false })
   mesh.name = 'blinds'

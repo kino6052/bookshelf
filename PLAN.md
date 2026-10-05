@@ -366,6 +366,7 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Frosted window glass = a 96 px cube capture of the garden (refreshed every 2 s) sampled along the view ray; the garden is only drawn into that cube (layer 1), never in the main view. Glass sits behind the mullions/blinds. Outside fog 6–80 m with a matching sky horizon | Owner asked for blurred, misty windows, then "less strong, less heavy": transmission cost ~2.9 ms/frame; this costs one quad and 10 draw calls total |
 | 2026-10-04 | Venetian blinds (tilted slats, per-pane drop) cast striped shadows; sun lowered to ~24° from the south-west so light reaches the floor, the bookcase and the east wall | Owner: blinds on the windows and light falling on the walls |
 | 2026-10-04 | GitHub Pages deploys from `.github/workflows/pages.yml` (pnpm, typecheck + test + build, upload `dist/`, deploy-pages) on push to `main` | Owner: "available via github pages via hook"; a push-triggered workflow is the hook. Never pushed from here |
+| 2026-10-04 | Bookcase style: flush "system furniture" (IKEA-like): 4 cm white panels in one front plane, single top slab, handle-less cabinet doors with shadow gaps, dark recessed plinth, warm unlit LED strips under each board (one extra draw call). Blinds: chunky 8 cm slats over each whole pane, tilted open | Owner: "more stylish/futuristic - like ikea bookshelves and the blinds are more massive across the entire window pane" |
 
 ### Blockers
 *(none)*
@@ -396,6 +397,7 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | M4.4 (dev) | Descartes PDF: 62 pages, worker `pdf.worker.min.mjs` loaded as its own file, page jump to 3 and 12 works ("p. 12 / 62"), virtualized canvases (3 live). `vite preview` check pending |
 | 2026-10-04 | M4.5 (dev) | Augustine EPUB from ArrayBuffer: 15 TOC entries, clicking "BOOK III" displays Book III; content iframe sandbox = `allow-same-origin` (no scripts). `vite preview` check pending |
 | 2026-10-04 | M2.9 | `pnpm test` (60 pass: books 1.0–2.1 m, decor never overlaps books, full-wall sections, growth only past the wall); screenshots `docs/verification/m2b-bookwall.png`, `m2b-shelves-close.png`, `m2b-light-blinds.png`, `m2b-west-wall.png`; 16 draw calls, ~16k triangles |
+| 2026-10-04 | M2.9 (restyle) | `docs/verification/m2c-bookwall.png`, `m2c-shelves-close.png`, `m2c-blinds.png`; 17 draw calls; `pnpm test` 60 pass. Snapshots now render at a fixed 1280×800 so they work while the pane is hidden |
 
 ### Ideas parking lot
 - Deep link to a book (`#/shelf/…/book/…`) so the owner can share "my copy of X".
