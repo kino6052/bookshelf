@@ -2,7 +2,7 @@
 import * as THREE from 'three'
 import { config } from '../config'
 import type { AABB, Layout } from '../shared/layout'
-import { GeometryBuilder, flatMaterial, staticMesh } from './builder'
+import { GeometryBuilder, UNIT_BOX, flatMaterial, staticMesh } from './builder'
 import { palette } from './palette'
 
 export interface RoomBuild {
@@ -75,6 +75,7 @@ export function buildRoom(room: Layout['room'], glassMaterial: THREE.Material): 
   const mesh = staticMesh(solid.build(), flatMaterial())
   mesh.name = 'room-shell'
   group.add(mesh)
+  group.add(buildBlinds(windows, D, H - header, sill))
 
   // Frosted glass across the whole opening (see frosted.ts). It casts no shadow, so the sun patches stay.
   const glassH = H - header - sill
@@ -99,6 +100,27 @@ export function buildRoom(room: Layout['room'], glassMaterial: THREE.Material): 
   return { group, colliders, windows }
 }
 
+/**
+ * Venetian blinds just inside each pane, lowered to different heights. The tilted slats let the sun through
+ * in stripes, so the light lands on the floor, the bookcase and the walls as bands.
+ */
+function buildBlinds(windows: RoomBuild['windows'], depth: number, top: number, sill: number): THREE.Mesh {
+  const b = new GeometryBuilder()
+  const z = depth / 2 - 0.05
+  const drops = [0.55, 0.38, 0.62, 0.45, 0.3, 0.5, 0.42]
+  windows.forEach((w, i) => {
+    const width = w.maxX - w.minX - 0.03
+    const cx = (w.minX + w.maxX) / 2
+    const bottom = Math.max(sill + 0.4, top - (top - sill) * drops[i % drops.length]!)
+    b.box(cx, top - 0.025, z, width + 0.02, 0.05, 0.06, palette.blind)
+    for (let y = top - 0.07; y > bottom; y -= 0.055) b.add(UNIT_BOX, { x: cx, y, z, sx: width, sy: 0.004, sz: 0.042, rotX: -0.45 }, palette.blind)
+    b.box(cx, bottom - 0.012, z, width, 0.024, 0.045, palette.blind)
+  })
+  const mesh = staticMesh(b.build(), flatMaterial(), { cast: true, receive: false })
+  mesh.name = 'blinds'
+  return mesh
+}
+
 /** Sun + sky fill. The shadow camera is fitted to the room so the window patches stay crisp. */
 export function buildLights(room: Layout['room']): { group: THREE.Group; sun: THREE.DirectionalLight } {
   const group = new THREE.Group()
@@ -108,8 +130,8 @@ export function buildLights(room: Layout['room']): { group: THREE.Group; sun: TH
   group.add(hemi)
 
   const sun = new THREE.DirectionalLight('#fff3dc', 5.2)
-  // From the south-west, fairly low, so light reaches deep across the floor.
-  const dir = new THREE.Vector3(-0.42, 0.58, 0.7).normalize()
+  // Low afternoon sun from the south-west: through the blinds it stripes the floor, the bookcase and the east wall.
+  const dir = new THREE.Vector3(-0.52, 0.41, 0.75).normalize()
   sun.position.copy(dir.clone().multiplyScalar(30))
   sun.target.position.set(0, 0, 0)
   sun.castShadow = true

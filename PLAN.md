@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| Current milestone | M3/M4 · interaction and reader |
-| Next action | M4.1 (state machine e2e), then M3.2/M3.3/M3.5/M3.6, M4.6, M4.7 fixtures |
+| Current milestone | M3/M4 checks, then M5 |
+| Next action | Commit; M3.3 touch, M3.6 list/fallback/axe, M4.6 errors, M4.7 website fixtures, M1.2 watcher/dist, then M5 authoring |
 | Blockers | none |
-| Last updated | 2026-10-04 · room halved, game controls, all formats open in dev |
+| Last updated | 2026-10-04 · pnpm, Pages workflow, bookcase wall + decor + paintings + blinds |
 
 ---
 
@@ -180,14 +180,14 @@ Dev server only. **The production build contains none of it.**
 | GPU texture memory | ≤ ~64 MB. Spine and plate labels are generated lazily near the player and evicted or LOD'd when far |
 | First-load JS | ≤ ~700 KB gzip, excluding lazy chunks. pdf.js, epub.js and markdown load only on demand |
 | Frame rate | 60 fps on an integrated GPU at 1080p; ≥ 30 fps on a mid-range phone. Dynamic resolution (pixel ratio 0.6 → min(devicePixelRatio, 2)) driven by frame time |
-| Scale | `?stress=1000` stays within all of the above (measure with `renderer.info`, not headless FPS) |
+| Scale | `?stress=500` stays within all of the above (measure with `renderer.info`, not headless FPS). *(Was 1000; the owner's library is at most 300–500 books.)* |
 | Browsers | latest Chrome, Edge, Firefox, Safari; iOS Safari; Android Chrome |
 
 Must handle: resize and orientation change; WebGL context loss/restore; hidden tab (pause the loop and audio); 0 books; 1 book; an empty shelf; very long titles (shrink-to-fit or ellipsis on the spine, full text in the hover label); Unicode titles (Greek, Latin, CJK); duplicate titles; `localStorage` unavailable (try/catch, the app still works); a bad book never crashes the scene.
 
 ### 3.8 Engineering conventions
 
-- Vite + TypeScript `strict`, ES modules, Node ≥ 20, npm. The owner is on **Windows 11 + PowerShell**: no bash-only scripts, use `node:path`, expect `\` separators on disk and `/` in URLs.
+- Vite + TypeScript `strict`, ES modules, Node ≥ 20, **pnpm** (owner, 2026-10-05; was npm). The owner is on **Windows 11 + PowerShell**: no bash-only scripts, use `node:path`, expect `\` separators on disk and `/` in URLs.
 - Preferred libraries (substitute only with a Decisions-log note): `three`, `markdown-it` (or `marked`) + `dompurify`, `pdfjs-dist`, `epubjs`. Dev: `vitest`, `@playwright/test`, `@axe-core/playwright`.
 - Pure logic (scanner, filename parsing, layout, manifest diff, playlist, upload validation) lives in three.js-free modules with unit tests.
 - Test hook `window.__bookshelf` (player pose, hovered book, layout info, `renderer.info`, teleport and select commands), exposed only in dev and in builds made with `VITE_E2E=1`.
@@ -230,11 +230,13 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 - [x] **M2.4** Layout engine + tests (§3.2).
   *Accept:* for 0 / 1 / 30 / 300 / 1000 books: deterministic, no overlaps, no dropped books, aisles ≥ 1.2 m, authoring reserve honoured.
 - [x] **M2.5** Bookcases, name plates, spines (instancing + lazy label textures; long-title fit; Unicode).
-  *Accept:* `?stress=1000` meets the §3.7 budgets by `renderer.info`.
+  *Accept:* `?stress=500` (was 1000) meets the §3.7 budgets by `renderer.info`.
 - [x] **M2.6** Furniture, plants, colliders.
 - [ ] **M2.7** One time-boxed visual pass: light balance, palette, tidy composition. *(Optional: thin emissive light strips for the "futuristic" feel.)*
 - [x] **M2.8** Website-book spines and covers (§3.2): slim, globe glyph, domain line. *(Functional: recognisability, not polish.)*
-  *Accept:* `?stress=1000` (≈ 10 % website books) still meets the §3.7 budgets; a screenshot shows website books are distinguishable from paper books at a glance.
+  *Accept:* `?stress=500` (was 1000; ≈ 10 % website books) still meets the §3.7 budgets; a screenshot shows website books are distinguishable from paper books at a glance.
+- [x] **M2.9** Owner's room brief (2026-10-05): the whole north wall is the bookcase (closed cabinets below, three open boards so books sit between 1.0 m and ~2.1 m), cozy items on free shelf space, paintings on the side walls, venetian blinds with the sun striping the floor and walls, misty garden behind frosted glass. Room design otherwise kept minimal.
+  *Accept:* screenshots show all of it; layout tests assert every book's bottom ≥ 1.0 m and top ≤ 2.1 m.
 
 ### M3 · Player and interaction
 - [x] **M3.1** Enter overlay (title, controls, loading progress, load errors) and Help.
@@ -285,7 +287,7 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 - [ ] **M6.4** `music/README.txt` explaining how to add tracks (the owner supplies their own).
 
 ### M7 · Hardening
-- [ ] **M7.1** Budgets (§3.7) verified with `?stress=1000`; bundle size report; lazy chunks confirmed.
+- [ ] **M7.1** Budgets (§3.7) verified with `?stress=500`; bundle size report; lazy chunks confirmed.
 - [ ] **M7.2** Robustness matrix (§3.7): every case has a test or a logged manual check.
 - [ ] **M7.3** Accessibility pass on the DOM UI: axe clean (no critical/serious); keyboard-only walkthrough List view → reader → close.
 - [ ] **M7.4** Reduced motion honoured everywhere.
@@ -293,7 +295,7 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 ### M8 · Docs and release prep
 - [ ] **M8.1** README: the ways to add books (including website books: drag a link into a shelf folder), naming conventions, folder layout, adding music, run/build/test, deploy, and a **copyright warning** (everything in `books/` and `music/` is public once deployed), troubleshooting.
 - [ ] **M8.2** `base: './'` verified under a subpath (serve `dist/` at `/bookshelf/`).
-- [ ] **M8.3** *(Optional)* `.github/workflows/pages.yml` that builds and deploys `dist/` to GitHub Pages (inert until pushed and enabled).
+- [ ] **M8.3** `.github/workflows/pages.yml` builds and deploys `dist/` to GitHub Pages on every push to `main` (inert until pushed and Pages → Source is set to "GitHub Actions"). *(No longer optional: owner requirement 2026-10-05.)*
 - [ ] **M8.4** One final visual polish pass; refresh screenshots in `docs/verification/`.
 - [ ] **M8.5** Full verification run from a clean clone (`npm ci` + every command in §5). Set Status to DONE and write the owner-facing summary: what was built, the assumptions in §7, how to add books.
 
@@ -303,12 +305,12 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 
 | Command | Proves |
 |---|---|
-| `npm run typecheck` | strict TypeScript is clean |
-| `npm test` | unit tests: scanner, layout, diff, playlist, upload validation, sanitizer |
-| `npm run build && npm run preview` | the production build works at the root and under a subpath |
-| `npm run e2e` | Playwright: smoke, movement and collisions, hover/select, reader × 4 formats + website mode, List view, music, authoring (dev server + temp content), production gating |
+| `pnpm run typecheck` | strict TypeScript is clean |
+| `pnpm test` | unit tests: scanner, layout, diff, playlist, upload validation, sanitizer |
+| `pnpm run build && pnpm run preview` | the production build works at the root; `node scripts/serve-subpath.mjs` serves it under `/bookshelf/` like GitHub Pages |
+| Browser-pane checks | smoke, movement and collisions, hover/select, reader × 4 formats + website mode, List view, music, authoring (dev server + temp content), production gating — run through `window.__bookshelf`, results in the Evidence log (no Playwright, see Decisions) |
 
-**Definition of done:** every non-optional item is `[x]`; `npm ci && npm run typecheck && npm test && npm run build && npm run e2e` is green from a clean clone; Status is DONE; the owner-facing summary is written in §9.
+**Definition of done:** every non-optional item is `[x]`; `pnpm install --frozen-lockfile && pnpm run typecheck && pnpm test && pnpm run build` is green from a clean clone and the browser-pane checks pass; Status is DONE; the owner-facing summary is written in §9.
 
 ## 6. Out of scope (v1)
 
@@ -358,6 +360,12 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Controls are game-style: moving the mouse looks around (pointer lock; where the browser refuses it, a free-look fallback turns the view on plain mouse movement), W A S D walk/strafe, **Q / E turn**, ↑/↓ walk, ←/→ turn, PageUp/PageDown look up/down. Opening a book is click, **F** or Enter (not E as in §3.3) | Owner: keyboard-only movement and game-like mouse-look ("aswd and q e"); E is taken by turning |
 | 2026-10-04 | Frame callbacks run inside try/catch in `Engine.tick` | An exception in a three.js animation-loop callback stops the loop for good (§3.7: a bad book never crashes the scene) |
 | 2026-10-04 | `optimizeDeps.include` pre-bundles three, markdown-it, dompurify, pdfjs-dist and epubjs | Opening the first lazily-loaded reader in dev made Vite re-optimize deps and full-reload the page |
+| 2026-10-04 | Package manager is **pnpm** (`pnpm-lock.yaml` imported from the npm lockfile with `pnpm import`, `packageManager: pnpm@10.33.0`; core-js/es5-ext build scripts deliberately ignored) | Owner: "install using pnpm" |
+| 2026-10-04 | Layout v2: one bookcase along the whole north wall (no side-wall runs, no freestanding stacks); 3 open boards at 1.00 / 1.38 / 1.76 m over closed cabinets; boards fill top → bottom per section, sections left → right; the room only grows in length (1 m per section) if the books outgrow the wall; empty boards get a small decor composition, a ≥ 30 cm gap after a shelf's last book gets one item | Owner: books between 1 m and not too high, "the entire wall is a bookshelf", cozy items on parts of the shelf, paintings on the side walls. Supersedes the §3.2 perimeter/stacks rules and the earlier "only build what's needed" decision |
+| 2026-10-04 | Stress/budget target is `?stress=500` | Owner: at most 300–500 books |
+| 2026-10-04 | Frosted window glass = a 96 px cube capture of the garden (refreshed every 2 s) sampled along the view ray; the garden is only drawn into that cube (layer 1), never in the main view. Glass sits behind the mullions/blinds. Outside fog 6–80 m with a matching sky horizon | Owner asked for blurred, misty windows, then "less strong, less heavy": transmission cost ~2.9 ms/frame; this costs one quad and 10 draw calls total |
+| 2026-10-04 | Venetian blinds (tilted slats, per-pane drop) cast striped shadows; sun lowered to ~24° from the south-west so light reaches the floor, the bookcase and the east wall | Owner: blinds on the windows and light falling on the walls |
+| 2026-10-04 | GitHub Pages deploys from `.github/workflows/pages.yml` (pnpm, typecheck + test + build, upload `dist/`, deploy-pages) on push to `main` | Owner: "available via github pages via hook"; a push-triggered workflow is the hook. Never pushed from here |
 
 ### Blockers
 *(none)*
@@ -387,6 +395,7 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | M4.3 (partial) | War and Peace txt (3.36 MB): 12,168 paragraphs rendered in ~0.6 s with **zero** long tasks (PerformanceObserver longtask), 779 TOC entries; md Apology: sanitized, 3 TOC entries. Still to do: sanitizer unit test, 5 MB file |
 | 2026-10-04 | M4.4 (dev) | Descartes PDF: 62 pages, worker `pdf.worker.min.mjs` loaded as its own file, page jump to 3 and 12 works ("p. 12 / 62"), virtualized canvases (3 live). `vite preview` check pending |
 | 2026-10-04 | M4.5 (dev) | Augustine EPUB from ArrayBuffer: 15 TOC entries, clicking "BOOK III" displays Book III; content iframe sandbox = `allow-same-origin` (no scripts). `vite preview` check pending |
+| 2026-10-04 | M2.9 | `pnpm test` (60 pass: books 1.0–2.1 m, decor never overlaps books, full-wall sections, growth only past the wall); screenshots `docs/verification/m2b-bookwall.png`, `m2b-shelves-close.png`, `m2b-light-blinds.png`, `m2b-west-wall.png`; 16 draw calls, ~16k triangles |
 
 ### Ideas parking lot
 - Deep link to a book (`#/shelf/…/book/…`) so the owner can share "my copy of X".

@@ -1,5 +1,6 @@
 // Frosted window glass, cheaply. The garden is rendered into a small cube map from the middle of the room
-// every couple of seconds; the glass samples a blurry mip level of it along the view direction.
+// every couple of seconds; the glass samples it along the view direction. The cube is deliberately small:
+// bilinear magnification of a low-resolution capture *is* the blur (no mipmaps, nothing to go stale).
 // Per frame that's one textured quad, and the garden itself is never drawn in the main view (it's only
 // ever seen through the glass), so this is cheaper than no glass at all.
 import * as THREE from 'three'
@@ -16,8 +17,8 @@ export class FrostedGlass {
 
   constructor(private readonly animated: boolean) {
     this.target = new THREE.WebGLCubeRenderTarget(config.render.glassResolution, {
-      generateMipmaps: true,
-      minFilter: THREE.LinearMipmapLinearFilter,
+      generateMipmaps: false,
+      minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       // 8-bit sRGB is colour-renderable and mipmappable everywhere (half-float cube targets aren't on some GPUs).
       type: THREE.UnsignedByteType,
@@ -29,7 +30,6 @@ export class FrostedGlass {
     this.material = new THREE.ShaderMaterial({
       uniforms: {
         envMap: { value: this.target.texture },
-        lod: { value: config.render.glassBlur },
         haze: { value: 0.06 },
       },
       vertexShader: /* glsl */ `
@@ -41,12 +41,11 @@ export class FrostedGlass {
         }`,
       fragmentShader: /* glsl */ `
         uniform samplerCube envMap;
-        uniform float lod;
         uniform float haze;
         varying vec3 vWorld;
         void main() {
           vec3 dir = normalize(vWorld - cameraPosition);
-          vec3 c = textureLod(envMap, dir, lod).rgb;
+          vec3 c = textureCube(envMap, dir).rgb;
           gl_FragColor = vec4(mix(c, vec3(1.0), haze), 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>

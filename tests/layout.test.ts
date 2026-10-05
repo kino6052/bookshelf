@@ -44,10 +44,10 @@ function checkInvariants(lib: Library, l: Layout, authoring: boolean) {
     for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) expect(overlaps3d(items[i]!, items[j]!)).toBe(false)
   }
 
-  // Every book sits inside its section, on a board within reach (top board ≤ 2.1 m).
+  // Every book is easy to look at: nothing below 1 m, nothing above ~2.1 m.
   for (const b of l.books) {
-    expect(b.y - b.height / 2).toBeGreaterThanOrEqual(config.bookcase.lowestBoard - EPS)
-    expect(b.y - b.height / 2).toBeLessThanOrEqual(2.1 + config.bookcase.boardThickness)
+    expect(b.y - b.height / 2).toBeGreaterThanOrEqual(1.0 - EPS)
+    expect(b.y + b.height / 2).toBeLessThanOrEqual(2.1)
     const f = footprint(b)
     expect(f.minX).toBeGreaterThan(l.room.minX)
     expect(f.maxX).toBeLessThan(l.room.maxX)
@@ -57,8 +57,8 @@ function checkInvariants(lib: Library, l: Layout, authoring: boolean) {
 
   // Aisles: the 1.2 m in front of every section is inside the room and free of other bookcases.
   for (const s of l.sections) {
-    const a = toWorld(s, -s.width / 2 + 0.01, s.depth / 2 + 0.001)
-    const b = toWorld(s, s.width / 2 - 0.01, s.depth / 2 + 1.2)
+    const a = toWorld(s, -s.width / 2 + 0.01, s.depth / 2 + 0.04) // just past the cabinet lip
+    const b = toWorld(s, s.width / 2 - 0.01, s.depth / 2 + 0.04 + 1.2)
     const clear: AABB = { minX: Math.min(a.x, b.x), maxX: Math.max(a.x, b.x), minZ: Math.min(a.z, b.z), maxZ: Math.max(a.z, b.z) }
     expect(clear.minX).toBeGreaterThanOrEqual(l.room.minX - EPS)
     expect(clear.maxX).toBeLessThanOrEqual(l.room.maxX + EPS)
@@ -76,6 +76,11 @@ function checkInvariants(lib: Library, l: Layout, authoring: boolean) {
       if (last) expect(slot.board).toBeGreaterThanOrEqual(last.board)
     }
   }
+  // Decor never shares space with books or "+" slots.
+  for (const d of l.decor) {
+    const onBoard = [...l.books, ...l.plusSlots].filter((p) => (p as { board: number }).board === d.board)
+    for (const p of onBoard) expect(Math.abs(p.x - d.x) >= p.width / 2 + d.width / 2 - EPS, `decor on board ${d.board}`).toBe(true)
+  }
   // Each shelf starts on a fresh board with a name plate.
   expect(l.plates.map((p) => p.shelfId)).toEqual(lib.shelves.map((s) => s.id))
   const firstBoards = lib.shelves.map((s) => l.boards.findIndex((b) => b.shelfId === s.id))
@@ -83,7 +88,7 @@ function checkInvariants(lib: Library, l: Layout, authoring: boolean) {
 }
 
 describe('layout', () => {
-  for (const n of [0, 1, 30, 300, 1000]) {
+  for (const n of [0, 1, 30, 300, 500]) {
     for (const authoring of [false, true]) {
       it(`N=${n} authoring=${authoring}: deterministic, no overlaps, nothing dropped, aisles ≥ 1.2 m`, () => {
         const lib = makeStressLibrary(n)
@@ -94,33 +99,32 @@ describe('layout', () => {
     }
   }
 
-  it('fills the perimeter first and keeps the base room for small libraries', () => {
-    const l = layout(makeStressLibrary(300), { authoring: false })
-    expect(l.room.length).toBe(config.room.length)
-    expect(l.stacks).toHaveLength(0)
-    const usedSections = new Set(l.books.map((b) => l.boards[b.board]!.section))
-    const usedRuns = new Set([...usedSections].map((s) => l.sections[s]!.run))
-    expect([...usedRuns].every((r) => l.runs[r]!.kind === 'wall')).toBe(true)
-  })
-
-  it('builds only the bookcases a 50–300 book library needs, plus one spare, starting on the north wall', () => {
+  it('makes the whole north wall a bookcase and keeps the base room for up to ~300 books', () => {
     for (const n of [0, 17, 50, 150, 300]) {
-      const lib = makeStressLibrary(n)
-      const l = layout(lib, { authoring: false })
-      const levels = config.bookcase.levels
-      expect(l.sections.length, `N=${n}`).toBe(Math.max(2, Math.ceil(l.boardsUsed / levels) + 1))
-      expect(l.runs[0]!.nz).toBe(1) // north wall faces +z and comes first
-      expect(l.sections.every((s) => s.run === 0) || n > 300).toBe(true)
+      const l = layout(makeStressLibrary(n), { authoring: false })
+      expect(l.room.length, `N=${n}`).toBe(config.room.length)
+      expect(l.sections.length).toBe(Math.floor((config.room.length - config.bookcase.sidePanel) / config.bookcase.boardWidth))
+      expect(l.sections.every((s) => s.rotY === 0 && s.z < l.room.minZ + 0.5)).toBe(true)
     }
   })
 
-  it('moves on to freestanding stacks and grows the room when the walls are full', () => {
-    const lib = manyShelves(400, 3)
+  it('gets longer only when the books outgrow the wall (500 books)', () => {
+    const lib = makeStressLibrary(500)
     const l = layout(lib, { authoring: true })
-    expect(l.room.length).toBeGreaterThan(config.room.length)
-    const usedRuns = new Set(l.books.map((b) => l.sections[l.boards[b.board]!.section]!.run))
-    expect([...usedRuns].some((r) => l.runs[r]!.kind === 'stack')).toBe(true)
+    expect(l.sections.length * config.bookcase.levels).toBeGreaterThanOrEqual(l.boardsUsed)
+    expect(l.room.length).toBeLessThan(20)
     checkInvariants(lib, l, true)
+  })
+
+  it('puts a small composition on every empty board and a single item in wide gaps', () => {
+    const lib = manyShelves(2, 10)
+    const l = layout(lib, { authoring: false })
+    const used = new Set(l.books.map((b) => b.board))
+    const empty = l.boards.filter((b) => !used.has(b.index) && !b.shelfId)
+    expect(empty.length).toBeGreaterThan(0)
+    for (const b of empty) expect(l.decor.filter((d) => d.board === b.index).length).toBeGreaterThanOrEqual(2)
+    for (const b of used) expect(l.decor.filter((d) => d.board === b).length).toBeLessThanOrEqual(1)
+    expect(layout(structuredClone(lib), { authoring: false }).decor).toEqual(l.decor)
   })
 
   it('spans consecutive boards for a big shelf', () => {

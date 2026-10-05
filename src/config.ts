@@ -4,34 +4,26 @@ export const config = {
   siteTitle: 'Library',
 
   room: {
-    /** Base length along x (the long window wall). Grows when bookcases need more room. */
+    /** Minimum length along x (the long window wall). Grows only if the books outgrow the bookcase wall. */
     length: 7,
-    /** Depth along z (north wall to window wall). */
+    /** Depth along z (bookcase wall to window wall). */
     depth: 5.5,
     height: 3.2,
     wallThickness: 0.2,
-    /** Clear floor kept in front of the windows (no wall bookcases reach into it). */
-    windowClearance: 1.6,
-    /** Length added each time the room has to grow. */
-    growStep: 1.9,
-    maxLength: 200,
+    /** Length added each time the room has to grow (one bookcase section). */
+    growStep: 1,
+    maxLength: 40,
   },
 
   bookcase: {
     boardWidth: 1.0,
     depth: 0.35,
-    levels: 5,
-    lowestBoard: 0.25,
-    levelSpacing: 0.45,
+    /** Open boards above the cabinets: books sit between ~1 m and ~2.1 m, easy to look at. */
+    levels: 3,
+    lowestBoard: 1.0,
+    levelSpacing: 0.38,
     boardThickness: 0.03,
     sidePanel: 0.03,
-    /** Gap kept in the corners so wall runs don't overlap. */
-    cornerGap: 0.4,
-    aisle: 1.4,
-    /** Freestanding stacks are at most this many sections long (shorter in a shallow room). */
-    stackSections: 3,
-    /** Floor kept clear for the reading tables in front of the windows (stacks stop short of it). */
-    tableZone: 2.3,
     /** Width reserved for the "+" slot in authoring mode. */
     plusSlotWidth: 0.05,
   },
@@ -68,10 +60,8 @@ export const config = {
     maxPixelRatio: 2,
     targetFrameMs: 1000 / 55,
     labelRadius: 9,
-    /** Frosted window glass: blur as a mip level of the garden cube map (0 = clear glass, 4+ = milky). */
-    glassBlur: 1.3,
-    /** Size of each face of the garden cube map seen through the glass. */
-    glassResolution: 256,
+    /** Frosted window glass: size of each face of the garden cube seen through it. Smaller = blurrier (48 milky, 256 nearly clear). */
+    glassResolution: 96,
   },
 
   audio: {

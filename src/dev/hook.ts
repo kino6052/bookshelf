@@ -60,7 +60,7 @@ export function installTestHook(app: App, parts: HookParts): void {
     layoutInfo: () => ({
       room: app.layout.room,
       sections: app.layout.sections.length,
-      stacks: app.layout.stacks.length,
+      decor: app.layout.decor.length,
       books: app.layout.books.length,
       boardsUsed: app.layout.boardsUsed,
       labels: app.shelves.labelStats,

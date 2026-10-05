@@ -10,7 +10,9 @@ import { BookShelves } from './scene/books'
 import { Engine } from './scene/engine'
 import { FrostedGlass, moveToOutsideLayer } from './scene/frosted'
 import { buildOutside, type Outside } from './scene/outside'
+import { buildDecor } from './scene/decor'
 import { buildFurniture } from './scene/furniture'
+import { buildPaintings } from './scene/paintings'
 import { palette } from './scene/palette'
 import { buildLights, buildRoom, fitShadowCamera } from './scene/room'
 
@@ -72,7 +74,7 @@ export class App {
       moveToOutsideLayer(this.outside.group)
       this.glass.setCenter(0, config.player.eyeHeight, 0)
       const furniture = buildFurniture(this.layout.room)
-      g.add(room.group, lights.group, this.outside.group, furniture.mesh)
+      g.add(room.group, lights.group, this.outside.group, furniture.mesh, buildPaintings(this.layout.room))
       this.sun = lights.sun
       fitShadowCamera(this.sun, this.layout.room)
       this.roomGroup = g
@@ -81,7 +83,7 @@ export class App {
     }
     disposeTree(this.staticGroup)
     this.staticGroup.clear()
-    this.staticGroup.add(buildBookcases(this.layout))
+    this.staticGroup.add(buildBookcases(this.layout), buildDecor(this.layout.decor))
     this.colliders = [...this.roomColliders, ...this.layout.colliders]
     this.shelves.setLayout(this.layout, this.library, change)
     this.bookIndex = new Map(this.library.shelves.flatMap((s) => s.books).map((b) => [b.id, b]))

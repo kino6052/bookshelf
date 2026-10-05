@@ -1,10 +1,14 @@
-// Pure, deterministic layout: library → bookcase sections, boards, books, plates and "+" slots.
+// Pure, deterministic layout: library → bookcase sections, boards, books, plates, "+" slots and shelf decor.
+//
+// The whole north wall is one bookcase: closed cabinets below, three open boards at comfortable heights
+// (books sit between 1 m and ~2.1 m), sections left → right. If the library outgrows the wall, the room
+// gets longer. Boards that hold no books (and wide gaps after a shelf's last book) get a few simple items.
 //
 // World frame: x along the long window wall (room centred on x = 0), z from the north wall (−depth/2)
-// to the window wall (+depth/2), y up. A section's local +z points out of the bookcase into the aisle;
-// local +x is the viewer's right when facing it, so "left → right" is +x in every section.
+// to the window wall (+depth/2), y up. A section's local +z points out of the bookcase into the room;
+// local +x is the viewer's right when facing it, so "left → right" is +x.
 import { config } from '../config'
-import { hash01, hashString } from './hash'
+import { hash01, hashString, mulberry32 } from './hash'
 import type { Book, Library } from './types'
 
 export interface AABB {
@@ -22,7 +26,6 @@ export interface Frame {
 }
 
 export interface SectionPlacement extends Frame {
-  run: number
   index: number
   width: number
   depth: number
@@ -55,6 +58,18 @@ export interface PlusPlacement extends BoxPlacement {
   board: number
 }
 
+export type DecorKind = 'plant' | 'vase' | 'stack' | 'box' | 'candles' | 'globe' | 'frame'
+
+export interface DecorPlacement extends Frame {
+  kind: DecorKind
+  /** Height of the board surface the item stands on. */
+  y: number
+  width: number
+  board: number
+  /** Deterministic per-item variation (colours, proportions). */
+  seed: number
+}
+
 export interface BoardInfo {
   index: number
   section: number
@@ -62,27 +77,18 @@ export interface BoardInfo {
   shelfId?: string
 }
 
-export interface RunInfo {
-  kind: 'wall' | 'stack'
-  /** Outward normal (into the aisle). */
-  nx: number
-  nz: number
-  sections: number
-}
-
 export interface Layout {
   room: { length: number; depth: number; height: number; minX: number; maxX: number; minZ: number; maxZ: number }
-  runs: RunInfo[]
   sections: SectionPlacement[]
   boards: BoardInfo[]
   books: BookPlacement[]
   plates: PlatePlacement[]
   plusSlots: PlusPlacement[]
-  /** Solid footprints of bookcase runs and stacks (for collision). */
+  decor: DecorPlacement[]
+  /** Solid footprint of the bookcase wall (for collision). */
   colliders: AABB[]
-  /** Stack centre dividers (block the interaction ray between the two faces). */
+  /** Things that block the interaction ray (none with a single wall; kept for the picking code). */
   occluders: AABB[]
-  stacks: AABB[]
   boardsUsed: number
 }
 
@@ -113,83 +119,25 @@ export function spineColor(book: Pick<Book, 'id' | 'spineColor' | 'format'>): st
   return BK.palette[hashString(book.id) % BK.palette.length]!
 }
 
-export function boardHeights(levels = BC.levels): number[] {
-  // Top to bottom, the order boards are filled in.
-  return Array.from({ length: levels }, (_, i) => BC.lowestBoard + (levels - 1 - i) * BC.levelSpacing)
+/** Board centre heights, top to bottom (the order boards are filled in). */
+export function boardHeights(levels: number = BC.levels, bc: { lowestBoard: number; levelSpacing: number } = BC): number[] {
+  return Array.from({ length: levels }, (_, i) => bc.lowestBoard + (levels - 1 - i) * bc.levelSpacing)
 }
 
-interface Run {
-  kind: 'wall' | 'stack'
-  /** Start point of the run's span (world), and its direction (local +x). */
-  sx: number
-  sz: number
-  dx: number
-  dz: number
-  nx: number
-  nz: number
-  span: number
-  align: 'start' | 'end' | 'center'
+/** Total bookcase height: cabinet, open boards, headroom above the top board, crown. */
+export function bookcaseHeight(bc: { lowestBoard: number; levelSpacing: number; levels: number } = BC): number {
+  return bc.lowestBoard + (bc.levels - 1) * bc.levelSpacing + 0.42
 }
 
-/** Most freestanding stacks that fit down the middle of a room of this length. */
-function maxStacks(length: number, bc: typeof BC): number {
-  const stackDepth = 2 * bc.depth
-  const free = length - 2 * (bc.depth + bc.aisle)
-  return free >= stackDepth ? Math.floor((free - stackDepth) / (stackDepth + bc.aisle)) + 1 : 0
+/** World position of a point given in a frame's local coordinates. */
+export function toWorld(f: Frame, lx: number, lz: number): { x: number; z: number } {
+  const c = Math.cos(f.rotY)
+  const s = Math.sin(f.rotY)
+  return { x: f.x + lx * c + lz * s, z: f.z - lx * s + lz * c }
 }
 
-function makeRuns(length: number, stackCount: number, o: Required<Pick<LayoutOptions, 'room' | 'bookcase'>>): { runs: Run[]; stacks: AABB[] } {
-  const room = { ...config.room, ...o.room }
-  const bc = { ...BC, ...o.bookcase }
-  const hx = length / 2
-  const hz = room.depth / 2
-  const d = bc.depth
-  const sideStart = -hz + d + 0.05
-  const sideEnd = hz - room.windowClearance
-  const runs: Run[] = [
-    // North wall first (it faces you as you come in), facing +z, read west → east from the west corner.
-    { kind: 'wall', sx: -hx + d, sz: -hz + d / 2, dx: 1, dz: 0, nx: 0, nz: 1, span: length - 2 * d, align: 'start' },
-    // East wall, facing −x, read north → south.
-    { kind: 'wall', sx: hx - d / 2, sz: sideStart, dx: 0, dz: 1, nx: -1, nz: 0, span: sideEnd - sideStart, align: 'start' },
-    // West wall, facing +x, read south → north.
-    { kind: 'wall', sx: -hx + d / 2, sz: sideEnd, dx: 0, dz: -1, nx: 1, nz: 0, span: sideEnd - sideStart, align: 'end' },
-  ]
-  // Freestanding double-sided stacks down the middle, running north–south.
-  const stackDepth = 2 * d
-  const pitch = stackDepth + bc.aisle
-  const count = Math.min(stackCount, maxStacks(length, bc))
-  const z0 = -hz + d + bc.aisle
-  const fit = Math.floor((hz - bc.tableZone - z0 - bc.sidePanel) / bc.boardWidth)
-  const stackLen = Math.max(1, Math.min(bc.stackSections, fit)) * bc.boardWidth + bc.sidePanel
-  const used = count * stackDepth + Math.max(0, count - 1) * bc.aisle
-  const x0 = -used / 2 + stackDepth / 2
-  const stacks: AABB[] = []
-  for (let i = 0; i < count; i++) {
-    const cx = x0 + i * pitch
-    stacks.push({ minX: cx - d, maxX: cx + d, minZ: z0, maxZ: z0 + stackLen })
-    // West face (facing −x) reads north → south; east face (facing +x) reads south → north.
-    runs.push({ kind: 'stack', sx: cx - d / 2, sz: z0, dx: 0, dz: 1, nx: -1, nz: 0, span: stackLen, align: 'start' })
-    runs.push({ kind: 'stack', sx: cx + d / 2, sz: z0 + stackLen, dx: 0, dz: -1, nx: 1, nz: 0, span: stackLen, align: 'start' })
-  }
-  return { runs, stacks }
-}
-
-function sectionsOf(run: Run, bc: typeof BC) {
-  const pitch = bc.boardWidth
-  const n = Math.max(0, Math.floor((run.span - bc.sidePanel) / pitch))
-  const block = n * pitch + bc.sidePanel
-  const offset = run.align === 'end' ? run.span - block : run.align === 'center' ? (run.span - block) / 2 : 0
-  const rotY = Math.atan2(run.nx, run.nz)
-  const out: Frame[] = []
-  for (let i = 0; i < n; i++) {
-    const along = offset + bc.sidePanel / 2 + (i + 0.5) * pitch
-    out.push({ x: run.sx + run.dx * along, z: run.sz + run.dz * along, rotY })
-  }
-  return out
-}
-
-/** Boards each shelf needs, in order (the "+" slot included when authoring). */
-function boardsNeeded(library: Library, authoring: boolean, inner: number): number {
+/** Boards the library needs, in order (the "+" slot included when authoring). */
+function boardsNeeded(library: Library, authoring: boolean, inner: number, plusW: number): number {
   let total = 0
   for (const shelf of library.shelves) {
     let boards = 1
@@ -202,111 +150,83 @@ function boardsNeeded(library: Library, authoring: boolean, inner: number): numb
       }
       used += w
     }
-    if (authoring && used > 0 && used + BC.plusSlotWidth > inner) boards++
+    if (authoring && used > 0 && used + plusW > inner) boards++
     total += boards
   }
   return total
 }
 
-/** World position of a point given in a frame's local coordinates. */
-export function toWorld(f: Frame, lx: number, lz: number): { x: number; z: number } {
-  const c = Math.cos(f.rotY)
-  const s = Math.sin(f.rotY)
-  return { x: f.x + lx * c + lz * s, z: f.z - lx * s + lz * c }
-}
+const DECOR_WIDTH: Record<DecorKind, number> = { plant: 0.16, vase: 0.11, stack: 0.24, box: 0.18, candles: 0.12, globe: 0.17, frame: 0.17 }
+const COMPOSITIONS: DecorKind[][] = [
+  ['plant', 'stack'],
+  ['vase', 'box', 'candles'],
+  ['stack', 'globe'],
+  ['frame', 'vase'],
+  ['candles', 'plant', 'stack'],
+  ['box', 'frame'],
+  ['globe', 'vase'],
+]
+const TAIL_ITEMS: DecorKind[] = ['plant', 'vase', 'stack', 'candles', 'frame']
 
 export function layout(library: Library, opts: LayoutOptions): Layout {
   const room = { ...config.room, ...opts.room }
   const bc = { ...BC, ...opts.bookcase }
-  const inner = bc.boardWidth - bc.sidePanel
-  const needed = boardsNeeded(library, opts.authoring, inner)
+  const pitch = bc.boardWidth
+  const inner = pitch - bc.sidePanel
+  const needed = boardsNeeded(library, opts.authoring, inner, bc.plusSlotWidth)
 
-  // Perimeter walls first, then stacks one at a time, then grow the room's length one stack pitch at a time.
+  // The wall spans the room; grow the room one section at a time until every board fits.
+  const sectionsFor = (len: number) => Math.max(1, Math.floor((len - bc.sidePanel) / pitch))
   let length = room.length
-  let stackCount = 0
-  const build = () => {
-    const b = makeRuns(length, stackCount, { room, bookcase: bc })
-    return { built: b, frames: b.runs.map((r) => sectionsOf(r, bc)) }
-  }
-  let { built, frames } = build()
-  const capacity = () => frames.reduce((n, f) => n + f.length, 0) * bc.levels
-  const growStep = 2 * bc.depth + bc.aisle
-  while (capacity() < needed && length < room.maxLength) {
-    if (stackCount < maxStacks(length, bc)) stackCount++
-    else length = Math.round((length + growStep) * 1000) / 1000
-    ;({ built, frames } = build())
-  }
-  // Only build the bookcases the library needs, plus one spare section to grow into. Slots are fixed,
-  // so a growing library adds sections at the end without moving the ones already standing.
-  let keep = Math.max(2, Math.ceil(needed / bc.levels) + 1)
-  frames = frames.map((f) => {
-    const kept = f.slice(0, Math.max(0, keep))
-    keep -= kept.length
-    return kept
-  })
-
-  const sections: SectionPlacement[] = []
-  const runInfo: RunInfo[] = []
-  const colliders: AABB[] = []
-  built.runs.forEach((run, ri) => {
-    const fr = frames[ri]!
-    runInfo.push({ kind: run.kind, nx: run.nx, nz: run.nz, sections: fr.length })
-    for (let i = 0; i < fr.length; i++) {
-      sections.push({ ...fr[i]!, run: ri, index: sections.length, width: bc.boardWidth, depth: bc.depth, height: bc.lowestBoard + (bc.levels - 1) * bc.levelSpacing + 0.4 })
-    }
-    if (run.kind === 'wall' && fr.length) {
-      const first = fr[0]!
-      const last = fr[fr.length - 1]!
-      const half = bc.boardWidth / 2 + bc.sidePanel / 2
-      colliders.push({
-        minX: Math.min(first.x, last.x) - (run.dx ? half : bc.depth / 2),
-        maxX: Math.max(first.x, last.x) + (run.dx ? half : bc.depth / 2),
-        minZ: Math.min(first.z, last.z) - (run.dz ? half : bc.depth / 2),
-        maxZ: Math.max(first.z, last.z) + (run.dz ? half : bc.depth / 2),
-      })
-    }
-  })
-  colliders.push(...built.stacks)
-  const occluders = built.stacks.map((s) => {
-    const cx = (s.minX + s.maxX) / 2
-    return { minX: cx - 0.01, maxX: cx + 0.01, minZ: s.minZ, maxZ: s.maxZ }
-  })
+  while (sectionsFor(length) * bc.levels < needed && length < room.maxLength) length = Math.round((length + room.growStep) * 1000) / 1000
+  const n = sectionsFor(length)
+  const hz = room.depth / 2
+  const block = n * pitch + bc.sidePanel
+  const z = -hz + bc.depth / 2
+  const sections: SectionPlacement[] = Array.from({ length: n }, (_, i) => ({
+    index: i,
+    x: -block / 2 + bc.sidePanel / 2 + (i + 0.5) * pitch,
+    z,
+    rotY: 0,
+    width: pitch,
+    depth: bc.depth,
+    height: bookcaseHeight(bc),
+  }))
+  const colliders: AABB[] = [{ minX: -length / 2, maxX: length / 2, minZ: -hz, maxZ: -hz + bc.depth + 0.03 }]
 
   // Boards in reading order: section by section, top to bottom.
-  const heights = boardHeights(bc.levels)
+  const heights = boardHeights(bc.levels, bc)
   const boards: BoardInfo[] = []
   for (const s of sections) for (let l = 0; l < bc.levels; l++) boards.push({ index: boards.length, section: s.index, level: l })
 
   const books: BookPlacement[] = []
   const plates: PlatePlacement[] = []
   const plusSlots: PlusPlacement[] = []
+  const usedWidth = new Map<number, number>()
   const frontZ = bc.depth / 2 - 0.015
-  let board = 0
-  const boardFrame = (bi: number) => {
-    const info = boards[bi]!
-    return { section: sections[info.section]!, y: heights[info.level]! + bc.boardThickness / 2 }
-  }
+  const boardTop = (bi: number) => heights[boards[bi]!.level]! + bc.boardThickness / 2
   const place = (bi: number, leftX: number, w: number, h: number, d: number) => {
-    const { section, y } = boardFrame(bi)
-    const lx = -inner / 2 + leftX + w / 2
-    const p = toWorld(section, lx, frontZ - d / 2)
-    return { x: p.x, z: p.z, rotY: section.rotY, y: y + h / 2, width: w, height: h, depth: d }
+    const section = sections[boards[bi]!.section]!
+    const p = toWorld(section, -inner / 2 + leftX + w / 2, frontZ - d / 2)
+    return { x: p.x, z: p.z, rotY: section.rotY, y: boardTop(bi) + h / 2, width: w, height: h, depth: d }
   }
 
+  let board = 0
   for (const shelf of library.shelves) {
     if (board >= boards.length) break // only reachable when maxLength caps growth
     boards[board]!.shelfId = shelf.id
     {
-      const { section, y } = boardFrame(board)
-      const pw = 0.28
-      const ph = 0.06
+      const section = sections[boards[board]!.section]!
+      const pw = 0.26
+      const ph = 0.065
       const p = toWorld(section, -inner / 2 + 0.02 + pw / 2, bc.depth / 2 + 0.006)
-      plates.push({ shelfId: shelf.id, title: shelf.title, x: p.x, z: p.z, rotY: section.rotY, y: y - bc.boardThickness - ph / 2 + 0.012, width: pw, height: ph, depth: 0.01 })
+      plates.push({ shelfId: shelf.id, title: shelf.title, x: p.x, z: p.z, rotY: section.rotY, y: boardTop(board) - bc.boardThickness - ph / 2 + 0.012, width: pw, height: ph, depth: 0.01 })
     }
     let used = 0
     for (const book of shelf.books) {
       const size = bookSize(book)
       if (used > 0 && used + size.thickness + BK.gap > inner) {
+        usedWidth.set(board, used)
         board++
         if (board >= boards.length) break
         boards[board]!.shelfId = shelf.id
@@ -315,33 +235,64 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
       books.push({ bookId: book.id, shelfId: shelf.id, board, color: spineColor(book), website: book.format === 'url', ...place(board, used + BK.gap / 2, size.thickness, size.height, size.depth) })
       used += size.thickness + BK.gap
     }
-    if (opts.authoring) {
+    if (opts.authoring && board < boards.length) {
       if (used > 0 && used + bc.plusSlotWidth > inner) {
+        usedWidth.set(board, used)
         board++
         if (board < boards.length) boards[board]!.shelfId = shelf.id
         used = 0
       }
-      if (board < boards.length) plusSlots.push({ shelfId: shelf.id, board, ...place(board, used + 0.004, bc.plusSlotWidth - 0.008, 0.24, 0.18) })
+      if (board < boards.length) {
+        plusSlots.push({ shelfId: shelf.id, board, ...place(board, used + 0.004, bc.plusSlotWidth - 0.008, 0.24, 0.18) })
+        used += bc.plusSlotWidth
+      }
     }
+    if (board < boards.length) usedWidth.set(board, used)
     board++
+  }
+  const boardsUsed = Math.min(board, boards.length)
+
+  // Cozy bits: a small composition on every empty board, one item in a wide gap after a shelf's last book.
+  const decor: DecorPlacement[] = []
+  const putDecor = (bi: number, kind: DecorKind, leftX: number, seed: number) => {
+    const section = sections[boards[bi]!.section]!
+    const w = DECOR_WIDTH[kind]
+    const p = toWorld(section, -inner / 2 + leftX + w / 2, frontZ - 0.1)
+    decor.push({ kind, x: p.x, z: p.z, rotY: section.rotY, y: boardTop(bi), width: w, board: bi, seed })
+  }
+  for (const b of boards) {
+    const rand = mulberry32(b.index * 7919 + 17)
+    const used = usedWidth.get(b.index)
+    if (used === undefined) {
+      const items = COMPOSITIONS[Math.floor(rand() * COMPOSITIONS.length)]!
+      const total = items.reduce((s, k) => s + DECOR_WIDTH[k], 0)
+      const gap = Math.min(0.14, (inner - total) / (items.length + 1))
+      let x = 0.06 + rand() * Math.max(0, inner - total - gap * (items.length - 1) - 0.12)
+      for (const k of items) {
+        putDecor(b.index, k, x, Math.floor(rand() * 1e9))
+        x += DECOR_WIDTH[k] + gap
+      }
+    } else if (inner - used >= 0.3) {
+      const k = TAIL_ITEMS[Math.floor(rand() * TAIL_ITEMS.length)]!
+      putDecor(b.index, k, inner - DECOR_WIDTH[k] - 0.04, Math.floor(rand() * 1e9))
+    }
   }
 
   return {
-    room: { length, depth: room.depth, height: room.height, minX: -length / 2, maxX: length / 2, minZ: -room.depth / 2, maxZ: room.depth / 2 },
-    runs: runInfo,
+    room: { length, depth: room.depth, height: room.height, minX: -length / 2, maxX: length / 2, minZ: -hz, maxZ: hz },
     sections,
     boards,
     books,
     plates,
     plusSlots,
+    decor,
     colliders,
-    occluders,
-    stacks: built.stacks,
-    boardsUsed: Math.min(board, boards.length),
+    occluders: [],
+    boardsUsed,
   }
 }
 
-/** The four XZ corners of a placed box (for overlap tests and colliders). */
+/** XZ bounds of a placed box (for overlap tests). */
 export function footprint(p: BoxPlacement): AABB {
   const c = Math.abs(Math.cos(p.rotY))
   const s = Math.abs(Math.sin(p.rotY))
