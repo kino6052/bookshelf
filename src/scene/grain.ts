@@ -1,13 +1,13 @@
-// Film grain: one full-screen quad drawn last, with per-pixel noise reseeded every frame. No render target,
+// Film grain: one full-screen quad drawn last, with blocky noise (a few pixels per grain) reseeded ~10×/s. No render target,
 // no extra scene pass; it ignores the camera, so it can live in the main scene.
 import * as THREE from 'three'
 
 export class FilmGrain {
   readonly mesh: THREE.Mesh
-  private readonly uniforms: { uSeed: { value: number }; uAmount: { value: number } }
+  private readonly uniforms: { uSeed: { value: number }; uAmount: { value: number }; uGrain: { value: number } }
 
-  constructor(amount = 0.085, private readonly animated = true) {
-    this.uniforms = { uSeed: { value: 0 }, uAmount: { value: amount } }
+  constructor(amount = 0.085, private readonly animated = true, grainPx = 2.5) {
+    this.uniforms = { uSeed: { value: 0 }, uAmount: { value: amount }, uGrain: { value: grainPx } }
     const material = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: /* glsl */ `
@@ -15,13 +15,14 @@ export class FilmGrain {
       fragmentShader: /* glsl */ `
         uniform float uSeed;
         uniform float uAmount;
+        uniform float uGrain;
         float hash(vec2 p) {
           p = fract(p * vec2(443.897, 441.423) + uSeed);
           p += dot(p, p.yx + 19.19);
           return fract((p.x + p.y) * p.x);
         }
         void main() {
-          float n = hash(floor(gl_FragCoord.xy));
+          float n = hash(floor(gl_FragCoord.xy / uGrain));
           // Signed grain around mid-grey so bright and dark areas both get texture.
           gl_FragColor = vec4(vec3(n), uAmount * (0.6 + 0.8 * abs(n - 0.5)));
         }`,
@@ -39,6 +40,7 @@ export class FilmGrain {
   }
 
   update(time: number): void {
-    if (this.animated) this.uniforms.uSeed.value = (time * 7.31) % 97
+    // Slow, film-like flicker: a new grain pattern about ten times a second.
+    if (this.animated) this.uniforms.uSeed.value = (Math.floor(time * 10) * 7.31) % 97
   }
 }
