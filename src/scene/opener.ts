@@ -1,6 +1,7 @@
 // Pull-out / open / return animation. State machine: idle → pulling → reading → returning → idle.
 // The instanced book is hidden while a standalone, more detailed mesh does the travelling.
 import * as THREE from 'three'
+import { outline } from './outlines'
 import { palette } from './palette'
 import type { BookShelves } from './books'
 import type { BookPlacement } from '../shared/layout'
@@ -123,6 +124,7 @@ export class BookOpener {
     front.position.set(0, 0, -d / 2)
     hinge.add(front)
     g.add(spine, back, pages, hinge)
+    for (const part of [spine, back, pages, front]) part.add(outline(part, { thresholdDeg: 20 }))
     g.traverse((o) => {
       o.castShadow = true
       o.receiveShadow = true

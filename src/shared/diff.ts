@@ -1,4 +1,4 @@
-import type { Book, Library } from './types'
+import type { Book, Library } from './types.ts'
 
 export interface LibraryDiff {
   added: Book[]

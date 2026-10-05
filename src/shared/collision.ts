@@ -1,5 +1,5 @@
 // Circle-vs-AABB collision in the XZ plane, with sliding. No physics engine.
-import type { AABB } from './layout'
+import type { AABB } from './layout.ts'
 
 /** Pushes a circle out of every box it overlaps. A few passes settle corners where two boxes meet. */
 export function resolveCircle(x: number, z: number, r: number, boxes: readonly AABB[], passes = 4): { x: number; z: number } {

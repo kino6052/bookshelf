@@ -11,6 +11,12 @@ export const palette = {
   board: '#f8f8f6',
   cabinetDoor: '#f6f6f3',
   shadowGap: '#8d8a84',
+  walnut: ['#6b4a33', '#74513a', '#654530', '#7a573d'] as readonly string[],
+  steel: '#2a2a2c',
+  brick: ['#a65a42', '#b0664b', '#9a5039', '#b8735a', '#a0533e', '#c08065', '#8f4a36'] as readonly string[],
+  mortar: '#d9d0c4',
+  fabric: '#ece4d4',
+  pillows: ['#c98f6b', '#c9a0a0', '#a8b5a2', '#d8c9a8'] as readonly string[],
   /** Warm LED strips under the boards (unlit). */
   led: '#fff1d2',
   blind: '#ebe7df',

@@ -3,8 +3,8 @@ import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import path from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { extOf } from '../src/shared/names'
-import { sendError, type Middleware } from './http'
+import { extOf } from '../src/shared/names.ts'
+import { sendError, type Middleware } from './http.ts'
 
 const MIME: Record<string, string> = {
   md: 'text/markdown; charset=utf-8',

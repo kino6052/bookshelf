@@ -1,6 +1,7 @@
 // Renderer + loop: resize, dynamic resolution, WebGL context loss/restore, pause while the tab is hidden.
 import * as THREE from 'three'
 import { config } from '../config'
+import { setOutlineResolution } from './outlines'
 
 export type FrameFn = (dt: number, time: number) => void
 
@@ -64,6 +65,7 @@ export class Engine {
     const w = Math.max(1, this.container.clientWidth)
     const h = Math.max(1, this.container.clientHeight)
     this.renderer.setSize(w, h, false)
+    setOutlineResolution(w, h)
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
   }

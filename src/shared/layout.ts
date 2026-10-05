@@ -1,15 +1,18 @@
-// Pure, deterministic layout: library → bookcase sections, boards, books, plates, "+" slots and shelf decor.
+// Pure, deterministic layout: library → bookcase sections, compartments, books, plates, "+" slots and decor.
 //
-// The whole north wall is one bookcase: closed cabinets below, three open boards at comfortable heights
-// (books sit between 1 m and ~2.1 m), sections left → right. If the library outgrows the wall, the room
-// gets longer. Boards that hold no books (and wide gaps after a shelf's last book) get a few simple items.
+// The whole north wall is one bookcase in a walnut-and-steel style: cabinets below (some with doors, some
+// open cubbies), three open boards at comfortable heights (books sit between 1 m and ~2.1 m) split by
+// staggered dividers into boxes of different widths. Books fill compartments in reading order (section by
+// section, top to bottom, left to right); each shelf starts in a fresh compartment. If the library outgrows
+// the wall the room gets longer. Empty compartments and cubbies (and wide gaps after a shelf's last book)
+// get a few simple items.
 //
 // World frame: x along the long window wall (room centred on x = 0), z from the north wall (−depth/2)
 // to the window wall (+depth/2), y up. A section's local +z points out of the bookcase into the room;
 // local +x is the viewer's right when facing it, so "left → right" is +x.
-import { config } from '../config'
-import { hash01, hashString, mulberry32 } from './hash'
-import type { Book, Library } from './types'
+import { config } from '../config.ts'
+import { hash01, hashString, mulberry32 } from './hash.ts'
+import type { Book, Library } from './types.ts'
 
 export interface AABB {
   minX: number
@@ -30,6 +33,8 @@ export interface SectionPlacement extends Frame {
   width: number
   depth: number
   height: number
+  /** Cabinet below the boards: doors, or open cubbies holding decor. */
+  cabinet: 'doors' | 'cubbies'
 }
 
 export interface BoxPlacement extends Frame {
@@ -43,6 +48,7 @@ export interface BoxPlacement extends Frame {
 export interface BookPlacement extends BoxPlacement {
   bookId: string
   shelfId: string
+  /** Compartment index. */
   board: number
   color: string
   website: boolean
@@ -58,28 +64,33 @@ export interface PlusPlacement extends BoxPlacement {
   board: number
 }
 
-export type DecorKind = 'plant' | 'vase' | 'stack' | 'box' | 'candles' | 'globe' | 'frame'
+export type DecorKind = 'plant' | 'vase' | 'stack' | 'box' | 'candles' | 'globe' | 'frame' | 'basket'
 
 export interface DecorPlacement extends Frame {
   kind: DecorKind
-  /** Height of the board surface the item stands on. */
+  /** Height of the surface the item stands on. */
   y: number
   width: number
+  /** Compartment index, or −1 for the cabinet cubbies. */
   board: number
   /** Deterministic per-item variation (colours, proportions). */
   seed: number
 }
 
+/** A box on one board between two dividers (or a divider and the frame). x0/x1 are local to the section. */
 export interface BoardInfo {
   index: number
   section: number
   level: number
+  x0: number
+  x1: number
   shelfId?: string
 }
 
 export interface Layout {
   room: { length: number; depth: number; height: number; minX: number; maxX: number; minZ: number; maxZ: number }
   sections: SectionPlacement[]
+  /** Compartments in reading order. */
   boards: BoardInfo[]
   books: BookPlacement[]
   plates: PlatePlacement[]
@@ -124,9 +135,39 @@ export function boardHeights(levels: number = BC.levels, bc: { lowestBoard: numb
   return Array.from({ length: levels }, (_, i) => bc.lowestBoard + (levels - 1 - i) * bc.levelSpacing)
 }
 
-/** Total bookcase height: cabinet, open boards, headroom above the top board, crown. */
+/** Total bookcase height: cabinet, open boards, the top box row, top board. */
 export function bookcaseHeight(bc: { lowestBoard: number; levelSpacing: number; levels: number } = BC): number {
-  return bc.lowestBoard + (bc.levels - 1) * bc.levelSpacing + 0.42
+  return bc.lowestBoard + bc.levels * bc.levelSpacing + 0.02
+}
+
+/**
+ * Divider positions (local x, measured from the left frame) for one board. Staggered from row to row and
+ * section to section so the wall reads as boxes of different sizes, like a walnut cubby system.
+ */
+export function dividersFor(section: number, level: number, inner: number): number[] {
+  switch ((section * 2 + level * 3) % 4) {
+    case 0:
+      return [inner * 0.42]
+    case 1:
+      return []
+    case 2:
+      return [inner * 0.63]
+    default:
+      return [inner * 0.5]
+  }
+}
+
+/** Compartment spans [x0, x1] (local, from the left frame) for one board. */
+export function compartmentsFor(section: number, level: number, inner: number, divider: number): [number, number][] {
+  const cuts = dividersFor(section, level, inner)
+  const spans: [number, number][] = []
+  let x = 0
+  for (const c of cuts) {
+    spans.push([x, c - divider / 2])
+    x = c + divider / 2
+  }
+  spans.push([x, inner])
+  return spans
 }
 
 /** World position of a point given in a frame's local coordinates. */
@@ -136,27 +177,31 @@ export function toWorld(f: Frame, lx: number, lz: number): { x: number; z: numbe
   return { x: f.x + lx * c + lz * s, z: f.z - lx * s + lz * c }
 }
 
-/** Boards the library needs, in order (the "+" slot included when authoring). */
-function boardsNeeded(library: Library, authoring: boolean, inner: number, plusW: number): number {
-  let total = 0
+/** Compartments the library needs if `widths` is the sequence of compartment widths, or Infinity if it doesn't fit. */
+function fits(library: Library, authoring: boolean, widths: number[], plusW: number): number {
+  let i = 0
   for (const shelf of library.shelves) {
-    let boards = 1
+    if (i >= widths.length) return Infinity
     let used = 0
     for (const b of shelf.books) {
       const w = bookSize(b).thickness + BK.gap
-      if (used > 0 && used + w > inner) {
-        boards++
+      while (used > 0 ? used + w > widths[i]! : w > widths[i]!) {
+        i++
         used = 0
+        if (i >= widths.length) return Infinity
       }
       used += w
     }
-    if (authoring && used > 0 && used + plusW > inner) boards++
-    total += boards
+    if (authoring && used > 0 && used + plusW > widths[i]!) {
+      i++
+      if (i >= widths.length) return Infinity
+    }
+    i++
   }
-  return total
+  return i
 }
 
-const DECOR_WIDTH: Record<DecorKind, number> = { plant: 0.16, vase: 0.11, stack: 0.24, box: 0.18, candles: 0.12, globe: 0.17, frame: 0.17 }
+const DECOR_WIDTH: Record<DecorKind, number> = { plant: 0.16, vase: 0.11, stack: 0.24, box: 0.18, candles: 0.12, globe: 0.17, frame: 0.17, basket: 0.26 }
 const COMPOSITIONS: DecorKind[][] = [
   ['plant', 'stack'],
   ['vase', 'box', 'candles'],
@@ -167,18 +212,26 @@ const COMPOSITIONS: DecorKind[][] = [
   ['globe', 'vase'],
 ]
 const TAIL_ITEMS: DecorKind[] = ['plant', 'vase', 'stack', 'candles', 'frame']
+const CUBBY_ITEMS: DecorKind[][] = [['basket'], ['stack', 'box'], ['basket', 'stack'], ['plant', 'basket']]
 
 export function layout(library: Library, opts: LayoutOptions): Layout {
   const room = { ...config.room, ...opts.room }
   const bc = { ...BC, ...opts.bookcase }
   const pitch = bc.boardWidth
   const inner = pitch - bc.sidePanel
-  const needed = boardsNeeded(library, opts.authoring, inner, bc.plusSlotWidth)
+  const levels = bc.levels
 
-  // The wall spans the room; grow the room one section at a time until every board fits.
+  // The wall spans the room; grow the room one section at a time until every book fits.
   const sectionsFor = (len: number) => Math.max(1, Math.floor((len - bc.sidePanel) / pitch))
+  const widthsFor = (n: number) => {
+    const w: number[] = []
+    for (let s = 0; s < n; s++) for (let l = 0; l < levels; l++) for (const [a, b] of compartmentsFor(s, l, inner, bc.dividerThickness)) w.push(b - a)
+    return w
+  }
   let length = room.length
-  while (sectionsFor(length) * bc.levels < needed && length < room.maxLength) length = Math.round((length + room.growStep) * 1000) / 1000
+  while (fits(library, opts.authoring, widthsFor(sectionsFor(length)), bc.plusSlotWidth) === Infinity && length < room.maxLength) {
+    length = Math.round((length + room.growStep) * 1000) / 1000
+  }
   const n = sectionsFor(length)
   const hz = room.depth / 2
   const block = n * pitch + bc.sidePanel
@@ -191,13 +244,17 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
     width: pitch,
     depth: bc.depth,
     height: bookcaseHeight(bc),
+    cabinet: i % 3 === 1 ? 'cubbies' : 'doors',
   }))
-  const colliders: AABB[] = [{ minX: -length / 2, maxX: length / 2, minZ: -hz, maxZ: -hz + bc.depth + 0.03 }]
+  const colliders: AABB[] = [{ minX: -length / 2, maxX: length / 2, minZ: -hz, maxZ: -hz + bc.depth + 0.02 }]
 
-  // Boards in reading order: section by section, top to bottom.
-  const heights = boardHeights(bc.levels, bc)
+  const heights = boardHeights(levels, bc)
   const boards: BoardInfo[] = []
-  for (const s of sections) for (let l = 0; l < bc.levels; l++) boards.push({ index: boards.length, section: s.index, level: l })
+  for (const s of sections) {
+    for (let l = 0; l < levels; l++) {
+      for (const [x0, x1] of compartmentsFor(s.index, l, inner, bc.dividerThickness)) boards.push({ index: boards.length, section: s.index, level: l, x0, x1 })
+    }
+  }
 
   const books: BookPlacement[] = []
   const plates: PlatePlacement[] = []
@@ -205,9 +262,11 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
   const usedWidth = new Map<number, number>()
   const frontZ = bc.depth / 2 - 0.015
   const boardTop = (bi: number) => heights[boards[bi]!.level]! + bc.boardThickness / 2
+  const width = (bi: number) => boards[bi]!.x1 - boards[bi]!.x0
   const place = (bi: number, leftX: number, w: number, h: number, d: number) => {
-    const section = sections[boards[bi]!.section]!
-    const p = toWorld(section, -inner / 2 + leftX + w / 2, frontZ - d / 2)
+    const info = boards[bi]!
+    const section = sections[info.section]!
+    const p = toWorld(section, -inner / 2 + info.x0 + leftX + w / 2, frontZ - d / 2)
     return { x: p.x, z: p.z, rotY: section.rotY, y: boardTop(bi) + h / 2, width: w, height: h, depth: d }
   }
 
@@ -216,27 +275,30 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
     if (board >= boards.length) break // only reachable when maxLength caps growth
     boards[board]!.shelfId = shelf.id
     {
-      const section = sections[boards[board]!.section]!
-      const pw = 0.26
+      const info = boards[board]!
+      const section = sections[info.section]!
+      const pw = Math.min(0.26, width(board) - 0.04)
       const ph = 0.065
-      const p = toWorld(section, -inner / 2 + 0.02 + pw / 2, bc.depth / 2 + 0.006)
+      const p = toWorld(section, -inner / 2 + info.x0 + 0.02 + pw / 2, bc.depth / 2 + 0.006)
       plates.push({ shelfId: shelf.id, title: shelf.title, x: p.x, z: p.z, rotY: section.rotY, y: boardTop(board) - bc.boardThickness - ph / 2 + 0.012, width: pw, height: ph, depth: 0.01 })
     }
     let used = 0
     for (const book of shelf.books) {
       const size = bookSize(book)
-      if (used > 0 && used + size.thickness + BK.gap > inner) {
+      const w = size.thickness + BK.gap
+      while (used > 0 ? used + w > width(board) : w > width(board)) {
         usedWidth.set(board, used)
         board++
         if (board >= boards.length) break
         boards[board]!.shelfId = shelf.id
         used = 0
       }
+      if (board >= boards.length) break
       books.push({ bookId: book.id, shelfId: shelf.id, board, color: spineColor(book), website: book.format === 'url', ...place(board, used + BK.gap / 2, size.thickness, size.height, size.depth) })
-      used += size.thickness + BK.gap
+      used += w
     }
     if (opts.authoring && board < boards.length) {
-      if (used > 0 && used + bc.plusSlotWidth > inner) {
+      if (used > 0 && used + bc.plusSlotWidth > width(board)) {
         usedWidth.set(board, used)
         board++
         if (board < boards.length) boards[board]!.shelfId = shelf.id
@@ -252,30 +314,40 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
   }
   const boardsUsed = Math.min(board, boards.length)
 
-  // Cozy bits: a small composition on every empty board, one item in a wide gap after a shelf's last book.
+  // Cozy bits: something in every empty compartment and cubby, one item in a wide gap after a shelf.
   const decor: DecorPlacement[] = []
-  const putDecor = (bi: number, kind: DecorKind, leftX: number, seed: number) => {
-    const section = sections[boards[bi]!.section]!
+  const putDecor = (section: SectionPlacement, bi: number, y: number, kind: DecorKind, leftLocal: number, seed: number) => {
     const w = DECOR_WIDTH[kind]
-    const p = toWorld(section, -inner / 2 + leftX + w / 2, frontZ - 0.1)
-    decor.push({ kind, x: p.x, z: p.z, rotY: section.rotY, y: boardTop(bi), width: w, board: bi, seed })
+    const p = toWorld(section, -inner / 2 + leftLocal + w / 2, frontZ - 0.11)
+    decor.push({ kind, x: p.x, z: p.z, rotY: section.rotY, y, width: w, board: bi, seed })
+  }
+  const fill = (section: SectionPlacement, bi: number, y: number, x0: number, x1: number, choices: DecorKind[][], rand: () => number) => {
+    let items = choices[Math.floor(rand() * choices.length)]!
+    // Drop items until the composition fits the box.
+    while (items.length && items.reduce((s, k) => s + DECOR_WIDTH[k], 0) + 0.04 * (items.length + 1) > x1 - x0) items = items.slice(0, -1)
+    if (!items.length) items = ['vase'] // the narrowest thing we have: no box stays bare
+    const total = items.reduce((s, k) => s + DECOR_WIDTH[k], 0)
+    const gap = Math.min(0.12, (x1 - x0 - total) / (items.length + 1))
+    let x = x0 + gap + rand() * Math.max(0, x1 - x0 - total - gap * (items.length + 1))
+    for (const k of items) {
+      putDecor(section, bi, y, k, x, Math.floor(rand() * 1e9))
+      x += DECOR_WIDTH[k] + gap
+    }
   }
   for (const b of boards) {
     const rand = mulberry32(b.index * 7919 + 17)
+    const section = sections[b.section]!
     const used = usedWidth.get(b.index)
-    if (used === undefined) {
-      const items = COMPOSITIONS[Math.floor(rand() * COMPOSITIONS.length)]!
-      const total = items.reduce((s, k) => s + DECOR_WIDTH[k], 0)
-      const gap = Math.min(0.14, (inner - total) / (items.length + 1))
-      let x = 0.06 + rand() * Math.max(0, inner - total - gap * (items.length - 1) - 0.12)
-      for (const k of items) {
-        putDecor(b.index, k, x, Math.floor(rand() * 1e9))
-        x += DECOR_WIDTH[k] + gap
-      }
-    } else if (inner - used >= 0.3) {
+    if (used === undefined) fill(section, b.index, boardTop(b.index), b.x0, b.x1, COMPOSITIONS, rand)
+    else if (width(b.index) - used >= 0.3) {
       const k = TAIL_ITEMS[Math.floor(rand() * TAIL_ITEMS.length)]!
-      putDecor(b.index, k, inner - DECOR_WIDTH[k] - 0.04, Math.floor(rand() * 1e9))
+      putDecor(section, b.index, boardTop(b.index), k, b.x1 - DECOR_WIDTH[k] - 0.04, Math.floor(rand() * 1e9))
     }
+  }
+  for (const s of sections) {
+    if (s.cabinet !== 'cubbies') continue
+    const rand = mulberry32(s.index * 104729 + 3)
+    for (const y of cubbyFloors(bc)) fill(s, -1, y, 0.02, inner - 0.02, CUBBY_ITEMS, rand)
   }
 
   return {
@@ -290,6 +362,12 @@ export function layout(library: Library, opts: LayoutOptions): Layout {
     occluders: [],
     boardsUsed,
   }
+}
+
+/** Floor heights of the two open cubbies in a cubby cabinet. */
+export function cubbyFloors(bc: { lowestBoard: number; boardThickness: number } = BC): number[] {
+  const cabTop = bc.lowestBoard - bc.boardThickness / 2
+  return [0.08, 0.08 + (cabTop - 0.08) / 2 + bc.boardThickness / 2]
 }
 
 /** XZ bounds of a placed box (for overlap tests). */

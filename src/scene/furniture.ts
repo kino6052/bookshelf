@@ -15,7 +15,6 @@ const box = (x: number, z: number, w: number, d: number, pad = 0): AABB => ({ mi
 export function buildFurniture(room: Layout['room']): FurnitureBuild {
   const b = new GeometryBuilder()
   const colliders: AABB[] = []
-  const zTables = room.maxZ - 1.05
   const cyl = new THREE.CylinderGeometry(1, 1, 1, 8)
   const ico = new THREE.IcosahedronGeometry(1, 0)
 
@@ -63,13 +62,8 @@ export function buildFurniture(room: Layout['room']): FurnitureBuild {
   }
 
   // Two long reading tables by the windows, centred in the room; the reading corner at the east end.
-  // Tables span the floor between the west window corner and the reading corner.
-  const x0 = room.minX + 0.7
-  const x1 = room.maxX - 2.1
-  const gap = 0.5
-  const tableW = Math.min(2.4, (x1 - x0 - gap) / 2)
-  table(x0 + tableW / 2, zTables, tableW, 0.8)
-  table(x1 - tableW / 2, zTables, tableW, 0.8)
+  // One long reading table in the middle of the room, leaving the bay seat and the bookcase aisle open.
+  table(-0.25, (room.minZ + room.maxZ) / 2 + 0.25, 2.2, 0.85)
 
   const ex = room.maxX
   armchair(ex - 1.25, room.maxZ - 0.6, Math.PI * 0.85)

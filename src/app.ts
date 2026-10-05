@@ -13,6 +13,7 @@ import { buildOutside, type Outside } from './scene/outside'
 import { buildDecor } from './scene/decor'
 import { buildFurniture } from './scene/furniture'
 import { buildPaintings } from './scene/paintings'
+import { outlineAll } from './scene/outlines'
 import { palette } from './scene/palette'
 import { buildLights, buildRoom, fitShadowCamera } from './scene/room'
 
@@ -74,7 +75,12 @@ export class App {
       moveToOutsideLayer(this.outside.group)
       this.glass.setCenter(0, config.player.eyeHeight, 0)
       const furniture = buildFurniture(this.layout.room)
-      g.add(room.group, lights.group, this.outside.group, furniture.mesh, buildPaintings(this.layout.room))
+      const paintings = buildPaintings(this.layout.room)
+      g.add(room.group, lights.group, this.outside.group, furniture.mesh, paintings)
+      // Comic outlines for the room, furniture and paintings (not the glass, the blinds or the garden).
+      const ink = new THREE.Group()
+      ink.add(outlineAll(room.group, (m) => m.name === 'window-glass' || m.name === 'blinds', (m) => m.name === 'brick-wall'), outlineAll(furniture.mesh), outlineAll(paintings))
+      g.add(ink)
       this.sun = lights.sun
       fitShadowCamera(this.sun, this.layout.room)
       this.roomGroup = g
@@ -83,7 +89,9 @@ export class App {
     }
     disposeTree(this.staticGroup)
     this.staticGroup.clear()
-    this.staticGroup.add(buildBookcases(this.layout), buildDecor(this.layout.decor))
+    const cases = buildBookcases(this.layout)
+    const decor = buildDecor(this.layout.decor)
+    this.staticGroup.add(cases, decor, outlineAll(cases), outlineAll(decor))
     this.colliders = [...this.roomColliders, ...this.layout.colliders]
     this.shelves.setLayout(this.layout, this.library, change)
     this.bookIndex = new Map(this.library.shelves.flatMap((s) => s.books).map((b) => [b.id, b]))

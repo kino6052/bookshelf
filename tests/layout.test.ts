@@ -111,18 +111,18 @@ describe('layout', () => {
   it('gets longer only when the books outgrow the wall (500 books)', () => {
     const lib = makeStressLibrary(500)
     const l = layout(lib, { authoring: true })
-    expect(l.sections.length * config.bookcase.levels).toBeGreaterThanOrEqual(l.boardsUsed)
+    expect(l.boards.length).toBeGreaterThanOrEqual(l.boardsUsed)
     expect(l.room.length).toBeLessThan(20)
     checkInvariants(lib, l, true)
   })
 
-  it('puts a small composition on every empty board and a single item in wide gaps', () => {
+  it('puts something in every empty compartment and at most one item in a used one', () => {
     const lib = manyShelves(2, 10)
     const l = layout(lib, { authoring: false })
     const used = new Set(l.books.map((b) => b.board))
     const empty = l.boards.filter((b) => !used.has(b.index) && !b.shelfId)
     expect(empty.length).toBeGreaterThan(0)
-    for (const b of empty) expect(l.decor.filter((d) => d.board === b.index).length).toBeGreaterThanOrEqual(2)
+    for (const b of empty) expect(l.decor.filter((d) => d.board === b.index).length).toBeGreaterThanOrEqual(1)
     for (const b of used) expect(l.decor.filter((d) => d.board === b).length).toBeLessThanOrEqual(1)
     expect(layout(structuredClone(lib), { authoring: false }).decor).toEqual(l.decor)
   })

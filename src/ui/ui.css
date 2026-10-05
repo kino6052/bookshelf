@@ -277,7 +277,7 @@ kbd {
   border-radius: 999px;
   font-size: 14px;
   transition: opacity 0.5s, transform 0.5s;
-  z-index: 40;
+  z-index: 50;
 }
 .toast.out {
   opacity: 0;
@@ -298,7 +298,7 @@ kbd {
   place-items: center;
   background: rgba(30, 30, 25, 0.28);
   padding: 16px;
-  z-index: 25;
+  z-index: 35; /* above the Enter overlay: the list can be opened from it */
 }
 .modal {
   width: min(560px, 100%);
@@ -382,7 +382,7 @@ kbd {
   display: grid;
   place-items: center;
   padding: 2vh 2vw;
-  z-index: 20;
+  z-index: 40;
   opacity: 0;
   transition: opacity 0.35s ease 0.45s;
 }

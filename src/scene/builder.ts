@@ -66,7 +66,8 @@ export const UNIT_BOX = new THREE.BoxGeometry(1, 1, 1)
 
 /** Flat-shaded, vertex-coloured Lambert: the house material for everything static. */
 export function flatMaterial(extra: THREE.MeshLambertMaterialParameters = {}): THREE.MeshLambertMaterial {
-  return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, ...extra })
+  // Polygon offset pushes faces back a hair so the comic outlines on their edges always win the depth test.
+  return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, ...extra })
 }
 
 export function staticMesh(geo: THREE.BufferGeometry, material: THREE.Material, shadows: { cast?: boolean; receive?: boolean } = {}): THREE.Mesh {

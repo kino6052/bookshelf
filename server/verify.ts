@@ -2,7 +2,7 @@
 // Never part of the built site (it lives in the Vite plugin, not in client code).
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { isLocalRequest, readBody, sendError, sendJson, type Middleware } from './http'
+import { isLocalRequest, readBody, sendError, sendJson, type Middleware } from './http.ts'
 
 export function verifySnapshotMiddleware(outDir: string): Middleware {
   return (req, res, next) => {

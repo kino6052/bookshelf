@@ -1,5 +1,7 @@
 // window.__bookshelf: the test hook (dev and `--mode e2e` builds only).
+import { Vector2 } from 'three'
 import type { App, Pose } from '../app'
+import { setOutlineResolution } from '../scene/outlines'
 import type { Controller } from '../controller'
 import type { Reader } from '../reader/reader'
 import type { BookOpener } from '../scene/opener'
@@ -75,10 +77,11 @@ export function installTestHook(app: App, parts: HookParts): void {
       // Fixed size, so snapshots work even while the pane is hidden (the canvas collapses then).
       const r = app.engine.renderer
       const cam = app.engine.camera
-      const prev = r.getSize(new (await import('three')).Vector2())
+      const prev = r.getSize(new Vector2())
       const prevRatio = r.getPixelRatio()
       r.setPixelRatio(1)
       r.setSize(width, height, false)
+      setOutlineResolution(width, height)
       cam.aspect = width / height
       cam.updateProjectionMatrix()
       for (let i = 0; i < 40; i++) app.engine.step(0)

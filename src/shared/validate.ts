@@ -1,6 +1,6 @@
 // The client treats library.json as untrusted: keep what's well-formed, skip the rest with a warning.
-import { validateTarget } from './linkfile'
-import type { Book, EmbedMode, Format, Library, Shelf, Track } from './types'
+import { validateTarget } from './linkfile.ts'
+import type { Book, EmbedMode, Format, Library, Shelf, Track } from './types.ts'
 
 const FORMATS: readonly Format[] = ['md', 'txt', 'pdf', 'epub', 'url']
 const EMBEDS: readonly EmbedMode[] = ['auto', 'iframe', 'link']

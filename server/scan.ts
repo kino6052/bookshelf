@@ -1,11 +1,11 @@
 // scanLibrary(): the only producer of library.json (dev server and build both call it).
 import { open, readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
-import { parseFrontMatter } from '../src/shared/frontmatter'
-import { displayDomain, parseUrlFile, parseWeblocFile, validateTarget } from '../src/shared/linkfile'
-import { encodePath, extOf, humanize, parseBookFilename, shelfNumberFromFolder, shelfTitleFromFolder, stripExt } from '../src/shared/names'
-import { compareBooks, compareText } from '../src/shared/sort'
-import { BOOK_EXTENSIONS, MUSIC_EXTENSIONS, type Book, type EmbedMode, type Format, type Library, type Shelf, type Track } from '../src/shared/types'
+import { parseFrontMatter } from '../src/shared/frontmatter.ts'
+import { displayDomain, parseUrlFile, parseWeblocFile, validateTarget } from '../src/shared/linkfile.ts'
+import { encodePath, extOf, humanize, parseBookFilename, shelfNumberFromFolder, shelfTitleFromFolder, stripExt } from '../src/shared/names.ts'
+import { compareBooks, compareText } from '../src/shared/sort.ts'
+import { BOOK_EXTENSIONS, MUSIC_EXTENSIONS, type Book, type EmbedMode, type Format, type Library, type Shelf, type Track } from '../src/shared/types.ts'
 
 export interface ScanDirs {
   booksDir: string

@@ -1,4 +1,4 @@
-import type { Book } from './types'
+import type { Book } from './types.ts'
 
 const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
 

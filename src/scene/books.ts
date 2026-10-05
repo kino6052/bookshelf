@@ -5,6 +5,7 @@ import { displayDomain } from '../shared/linkfile'
 import { toWorld, type BookPlacement, type Layout, type PlatePlacement, type PlusPlacement } from '../shared/layout'
 import type { Book, Library } from '../shared/types'
 import { LabelAtlas, atlasMaterial, paintPlate, paintSpine } from './labels'
+import { boxEdgePositions, segmentsLine } from './outlines'
 import { palette } from './palette'
 
 const SPINE_SLOTS = { width: 2048, height: 2048, slotW: 32, slotH: 256 }
@@ -23,7 +24,7 @@ function bookGeometry(): THREE.BufferGeometry {
 }
 
 function bookMaterial(): THREE.MeshLambertMaterial {
-  const mat = new THREE.MeshLambertMaterial({ flatShading: true })
+  const mat = new THREE.MeshLambertMaterial({ flatShading: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.pageColor = { value: new THREE.Color(palette.pages) }
     shader.vertexShader = shader.vertexShader
@@ -54,6 +55,7 @@ export class BookShelves {
   private labelMesh: THREE.InstancedMesh
   private plateMesh: THREE.InstancedMesh
   private plusMesh: THREE.InstancedMesh
+  private outlineLine = segmentsLine(new Float32Array(0), 'book-outlines')
   private readonly spineAtlas = new LabelAtlas(SPINE_SLOTS)
   private readonly plateAtlas = new LabelAtlas(PLATE_SLOTS)
   private readonly bookGeo = bookGeometry()
@@ -94,7 +96,7 @@ export class BookShelves {
     this.labelMesh = this.makeQuadMesh(this.spineAtlas, this.spineAtlas.slots, 'spine-labels')
     this.plateMesh = this.makeQuadMesh(this.plateAtlas, this.plateAtlas.slots, 'shelf-plates')
     this.plusMesh = this.makePlusMesh(8)
-    this.group.add(this.booksMesh, this.labelMesh, this.plateMesh, this.plusMesh)
+    this.group.add(this.booksMesh, this.labelMesh, this.plateMesh, this.plusMesh, this.outlineLine)
   }
 
   private makeBooksMesh(capacity: number): THREE.InstancedMesh {
@@ -188,6 +190,16 @@ export class BookShelves {
     this.writeAllBooks()
     this.writePlus()
     this.labelMesh.instanceMatrix.needsUpdate = true
+    this.refreshOutlines()
+  }
+
+  /** Comic outlines for every book on a shelf (rebuilt when books move or are taken off the shelf). */
+  private refreshOutlines(): void {
+    const visible = [...this.placements.filter((p) => !this.hidden.has(p.bookId)), ...this.plates, ...this.plus]
+    this.group.remove(this.outlineLine)
+    this.outlineLine.geometry.dispose()
+    this.outlineLine = segmentsLine(boxEdgePositions(visible), 'book-outlines')
+    this.group.add(this.outlineLine)
   }
 
   get placementList(): readonly BookPlacement[] {
@@ -211,6 +223,7 @@ export class BookShelves {
     if (hidden) this.hidden.add(id)
     else this.hidden.delete(id)
     this.writeBook(id)
+    this.refreshOutlines()
   }
 
   setHover(id: string | undefined, plusShelf?: string): void {

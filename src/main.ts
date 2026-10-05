@@ -18,14 +18,16 @@ import { EnterOverlay } from './ui/overlay'
 async function boot(): Promise<void> {
   const root = document.getElementById('app')!
   const ui = h('div', { class: 'ui' })
+  root.append(h('div', { class: 'grain', 'aria-hidden': 'true' }))
   document.body.append(ui)
 
   const reader = new Reader()
-  let openBook: (book: Book) => void = (b) => reader.open(b)
+  /** `animate`: pull the book off the shelf in 3D first (not when opening from the 2D list). */
+  let openBook: (book: Book, animate?: boolean) => void = (b) => reader.open(b)
   const list = new ListView({
     onOpen: (b) => {
       list.close()
-      openBook(b)
+      openBook(b, false)
     },
   })
   const overlay = new EnterOverlay({
@@ -85,11 +87,11 @@ async function boot(): Promise<void> {
   })
   opener.onStateChange = () => controller.refreshHud()
 
-  openBook = (b) => {
-    if (reader.isOpen || opener.state !== 'idle') return // rapid clicks
+  openBook = (b, animate = true) => {
+    if (reader.isOpen || (animate && opener.state !== 'idle')) return // rapid clicks
     relockAfterClose = controller.mode === 'look'
     controller.desktop.release()
-    opener.open(b.id) // no-op (reader only) if the book isn't on a shelf
+    if (animate) opener.open(b.id) // no-op (reader only) if the book isn't on a shelf
     reader.open(b)
     controller.refreshHud()
   }

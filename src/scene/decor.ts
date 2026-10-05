@@ -73,6 +73,13 @@ function item(b: GeometryBuilder, d: DecorPlacement): void {
       b.add(SPHERE, { x: p.x, y: y0 + 0.17, z: p.z, sx: 0.075, sy: 0.075, sz: 0.075, rotY: rand() * 6 }, '#6f93a8')
       break
     }
+    case 'basket': {
+      // A woven basket: tapered body with a darker rim.
+      const p = at(0, 0.02)
+      b.box(p.x, y0 + 0.07, p.z, 0.25, 0.14, 0.2, pick(['#c9a777', '#b8956a', '#d2b48a']), d.rotY)
+      b.box(p.x, y0 + 0.145, p.z, 0.255, 0.014, 0.205, '#9c7a52', d.rotY)
+      break
+    }
     case 'frame': {
       // A small picture leaning against the back of the shelf.
       const p = at(0, -0.04)

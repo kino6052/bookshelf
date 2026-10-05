@@ -1,6 +1,6 @@
 // ?stress=N: a deterministic synthetic library for budget and layout testing (dev and e2e builds only).
-import { mulberry32 } from './hash'
-import type { Book, Format, Library, Shelf } from './types'
+import { mulberry32 } from './hash.ts'
+import type { Book, Format, Library, Shelf } from './types.ts'
 
 const AUTHORS = ['Plato', 'Aristotle', 'Augustine', 'Boethius', 'Aquinas', 'Descartes', 'Spinoza', 'Leibniz', 'Locke', 'Berkeley', 'Hume', 'Kant', 'Hegel', 'Schopenhauer', 'Nietzsche', 'Πλάτων', '孔子', 'Montaigne', 'Pascal', 'Kierkegaard']
 const WORDS = ['Critique', 'Treatise', 'Meditations', 'Essay', 'Dialogues', 'Ethics', 'Principles', 'Enquiry', 'Republic', 'Metaphysics', 'Reason', 'Understanding', 'Nature', 'Mind', 'Being', 'Time', 'Virtue', 'Knowledge', 'Soul', 'God', 'Ἠθικά', '論語', 'Monadology', 'Consolation']

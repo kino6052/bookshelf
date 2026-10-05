@@ -8,9 +8,9 @@
 | | |
 |---|---|
 | Current milestone | M3/M4 checks, then M5 |
-| Next action | Commit; M3.3 touch, M3.6 list/fallback/axe, M4.6 errors, M4.7 website fixtures, M1.2 watcher/dist, then M5 authoring |
+| Next action | M3.3 touch, M3.6 list/fallback/axe, M4.6 errors, M4.7 website fixtures, M1.2 watcher, then M5 authoring |
 | Blockers | none |
-| Last updated | 2026-10-04 · pnpm, Pages workflow, bookcase wall + decor + paintings + blinds |
+| Last updated | 2026-10-04 · walnut/brick/bay redesign, comic outlines, grain, Pages verified under a subpath |
 
 ---
 
@@ -256,9 +256,9 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 - [x] **M4.2** Reader shell (dialog, focus trap, Esc, loading/error/abort, progress, TOC, font size, remembered position).
 - [~] **M4.3** md + txt readers (sanitized, chunked).
   *Accept:* `<script>` and `onerror` in markdown are neutralised (test); a 5 MB txt opens without a long task over 200 ms.
-- [~] **M4.4** pdf reader.
+- [x] **M4.4** pdf reader.
   *Accept:* opens the seed PDF in dev **and** `vite preview`; page jump works.
-- [~] **M4.5** epub reader.
+- [x] **M4.5** epub reader.
   *Accept:* opens the seed EPUB in dev **and** `vite preview`; TOC navigation works.
 - [ ] **M4.6** Error paths: missing, corrupt and zero-byte files.
   *Accept:* a friendly error is shown and the scene keeps working.
@@ -294,8 +294,8 @@ Must handle: resize and orientation change; WebGL context loss/restore; hidden t
 
 ### M8 · Docs and release prep
 - [ ] **M8.1** README: the ways to add books (including website books: drag a link into a shelf folder), naming conventions, folder layout, adding music, run/build/test, deploy, and a **copyright warning** (everything in `books/` and `music/` is public once deployed), troubleshooting.
-- [ ] **M8.2** `base: './'` verified under a subpath (serve `dist/` at `/bookshelf/`).
-- [ ] **M8.3** `.github/workflows/pages.yml` builds and deploys `dist/` to GitHub Pages on every push to `main` (inert until pushed and Pages → Source is set to "GitHub Actions"). *(No longer optional: owner requirement 2026-10-05.)*
+- [x] **M8.2** `base: './'` verified under a subpath (serve `dist/` at `/bookshelf/`).
+- [~] **M8.3** `.github/workflows/pages.yml` builds and deploys `dist/` to GitHub Pages on every push to `main` (inert until pushed and Pages → Source is set to "GitHub Actions"). *(No longer optional: owner requirement 2026-10-05.)*
 - [ ] **M8.4** One final visual polish pass; refresh screenshots in `docs/verification/`.
 - [ ] **M8.5** Full verification run from a clean clone (`npm ci` + every command in §5). Set Status to DONE and write the owner-facing summary: what was built, the assumptions in §7, how to add books.
 
@@ -367,6 +367,10 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Venetian blinds (tilted slats, per-pane drop) cast striped shadows; sun lowered to ~24° from the south-west so light reaches the floor, the bookcase and the east wall | Owner: blinds on the windows and light falling on the walls |
 | 2026-10-04 | GitHub Pages deploys from `.github/workflows/pages.yml` (pnpm, typecheck + test + build, upload `dist/`, deploy-pages) on push to `main` | Owner: "available via github pages via hook"; a push-triggered workflow is the hook. Never pushed from here |
 | 2026-10-04 | Bookcase style: flush "system furniture" (IKEA-like): 4 cm white panels in one front plane, single top slab, handle-less cabinet doors with shadow gaps, dark recessed plinth, warm unlit LED strips under each board (one extra draw call). Blinds: chunky 8 cm slats over each whole pane, tilted open | Owner: "more stylish/futuristic - like ikea bookshelves and the blinds are more massive across the entire window pane" |
+| 2026-10-04 | Room v3 (owner references: walnut/steel cubby shelving, built-ins around a window seat, shelving on brick): the north wall is low-poly brick (one merged mesh, ~1300 bricks); the bookcase is walnut boards with staggered dividers making boxes of different widths, a thin black steel frame, open backs, cabinets alternating doors / open cubbies (cubbies hold baskets and stacks; books still only 1.0–2.1 m). Books fill compartments in reading order, each shelf starting in a fresh compartment. South wall: a central bay window (trapezoid, cushioned seat, pillows, roman blind, three frosted panes) between two glazed spans with venetian blinds. Furniture: one central reading table (was two), armchair corner, plants | Owner: "the shelves are not just like plain closets but more like boxish", "one wall should be brickish and there should be a bay window". Supersedes the IKEA-style restyle |
+| 2026-10-04 | Comic-book ink outlines: `EdgesGeometry` → `LineSegments2` (screen-space width 1.7 px; 1 px brown on the brick wall), one line mesh per merged mesh, books' edges as one segment set rebuilt on layout/hidden changes, outlines on the opened book; faces use polygon offset so the ink wins the depth test. No post-processing pass | Owner: "make edges of object have black comic book lines" |
+| 2026-10-04 | Film grain is a CSS layer over the 3D canvas (procedural SVG `feTurbulence` tile, overlay blend, opacity 0.1, jittered 5×/s, static under reduced motion), not a WebGL pass | Owner asked for "a little bit post processing noise"; §3.2 says no post-processing, and the owner cares about cost — this costs a composited layer only |
+| 2026-10-04 | Books opened from the List view skip the 3D pull-out animation; the list and reader sit above the Enter overlay (z-index 35/40) | Bug found in the subpath build: "Browse as a list" opened behind the overlay, and a list-opened book's 3D animation could block the next open while the tab wasn't rendering |
 
 ### Blockers
 *(none)*
@@ -398,6 +402,11 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | M4.5 (dev) | Augustine EPUB from ArrayBuffer: 15 TOC entries, clicking "BOOK III" displays Book III; content iframe sandbox = `allow-same-origin` (no scripts). `vite preview` check pending |
 | 2026-10-04 | M2.9 | `pnpm test` (60 pass: books 1.0–2.1 m, decor never overlaps books, full-wall sections, growth only past the wall); screenshots `docs/verification/m2b-bookwall.png`, `m2b-shelves-close.png`, `m2b-light-blinds.png`, `m2b-west-wall.png`; 16 draw calls, ~16k triangles |
 | 2026-10-04 | M2.9 (restyle) | `docs/verification/m2c-bookwall.png`, `m2c-shelves-close.png`, `m2c-blinds.png`; 17 draw calls; `pnpm test` 60 pass. Snapshots now render at a fixed 1280×800 so they work while the pane is hidden |
+| 2026-10-04 | M4.4 (preview) | `pnpm run build` + `scripts/serve-subpath.mjs`: Descartes PDF opened from the List view under `/bookshelf/`: 62 pages, worker `/bookshelf/assets/pdf.worker.min-*.mjs`, book `/bookshelf/books/03-rationalists/…pdf`, state ready, "p. 1 / 62" |
+| 2026-10-04 | M4.5 (preview) | Same build: Augustine EPUB from `/bookshelf/books/02-medieval/…epub`, 15 TOC entries, content iframe sandbox `allow-same-origin` only. TOC navigation verified in dev (BOOK III) |
+| 2026-10-04 | M8.2 | `node scripts/serve-subpath.mjs` (dist/ at `/bookshelf/`, like a GitHub Pages project site): `library.json` fetched from `/bookshelf/library.json`, "17 books on 6 shelves", PDF and EPUB open, no `__bookshelf` hook and no author-token meta in the build |
+| 2026-10-04 | M8.3 (written) | `.github/workflows/pages.yml`: push to `main` / manual → pnpm install --frozen-lockfile, typecheck, test, build → upload-pages-artifact v5 → deploy-pages v5. Activates once pushed and Settings → Pages → Source = GitHub Actions |
+| 2026-10-04 | M2.9 (v3) | `docs/verification/m2d-bookwall.png`, `m2d-shelves-close.png`, `m2d-bay.png`, `m2d-room.png`; 29 draw calls, ~189k triangles (ink lines included); `pnpm test` 60 pass |
 
 ### Ideas parking lot
 - Deep link to a book (`#/shelf/…/book/…`) so the owner can share "my copy of X".
