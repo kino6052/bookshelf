@@ -9,6 +9,7 @@ import { buildBookcases } from './scene/bookcases'
 import { BookShelves } from './scene/books'
 import { Engine } from './scene/engine'
 import { FrostedGlass, moveToOutsideLayer } from './scene/frosted'
+import { FilmGrain } from './scene/grain'
 import { buildOutside, type Outside } from './scene/outside'
 import { buildDecor } from './scene/decor'
 import { buildFurniture } from './scene/furniture'
@@ -40,6 +41,7 @@ export class App {
   private outside?: Outside
   private sun?: THREE.DirectionalLight
   readonly glass = new FrostedGlass(!REDUCED_MOTION)
+  readonly grain = new FilmGrain(0.085, !REDUCED_MOTION)
 
   constructor(container: HTMLElement, library: Library) {
     this.engine = new Engine(container)
@@ -47,7 +49,7 @@ export class App {
     this.shelves = new BookShelves(this.engine.renderer, { reducedMotion: REDUCED_MOTION })
     this.engine.scene.fog = new THREE.Fog(palette.fog, 6, 80)
     this.engine.scene.background = new THREE.Color(palette.fog)
-    this.engine.scene.add(this.staticGroup, this.shelves.group)
+    this.engine.scene.add(this.staticGroup, this.shelves.group, this.grain.mesh)
     this.rebuild()
     this.engine.onFrame((dt, t) => this.frame(dt, t))
     this.engine.onContextChange = (lost) => {
@@ -122,6 +124,7 @@ export class App {
     this.syncCamera()
     this.outside?.update(dt, t)
     this.glass.update(dt, this.engine.renderer, this.engine.scene)
+    this.grain.update(t)
     this.shelves.update(dt, this.engine.camera.position)
   }
 

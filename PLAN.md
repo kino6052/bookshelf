@@ -371,6 +371,8 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Comic-book ink outlines: `EdgesGeometry` → `LineSegments2` (screen-space width 1.7 px; 1 px brown on the brick wall), one line mesh per merged mesh, books' edges as one segment set rebuilt on layout/hidden changes, outlines on the opened book; faces use polygon offset so the ink wins the depth test. No post-processing pass | Owner: "make edges of object have black comic book lines" |
 | 2026-10-04 | Film grain is a CSS layer over the 3D canvas (procedural SVG `feTurbulence` tile, overlay blend, opacity 0.1, jittered 5×/s, static under reduced motion), not a WebGL pass | Owner asked for "a little bit post processing noise"; §3.2 says no post-processing, and the owner cares about cost — this costs a composited layer only |
 | 2026-10-04 | Books opened from the List view skip the 3D pull-out animation; the list and reader sit above the Enter overlay (z-index 35/40) | Bug found in the subpath build: "Browse as a list" opened behind the overlay, and a list-opened book's 3D animation could block the next open while the tab wasn't rendering |
+| 2026-10-04 | Film grain moved into WebGL: one full-screen quad drawn last with per-pixel noise reseeded each frame (alpha ~8.5%), replacing the CSS layer | Owner: "make sure there is film grain" — the CSS overlay blend all but vanished on the near-white room and couldn't be verified in canvas captures. Visual check still pending |
+| 2026-10-04 | Pushed `main` to `origin` (github.com/kino6052/bookshelf) on request | Owner: "push to gh" (overrides §0.8 "never push") |
 
 ### Blockers
 *(none)*

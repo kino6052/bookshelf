@@ -18,7 +18,6 @@ import { EnterOverlay } from './ui/overlay'
 async function boot(): Promise<void> {
   const root = document.getElementById('app')!
   const ui = h('div', { class: 'ui' })
-  root.append(h('div', { class: 'grain', 'aria-hidden': 'true' }))
   document.body.append(ui)
 
   const reader = new Reader()
