@@ -7,6 +7,7 @@ import { EmptyBookError, type FormatModule, type FormatView, type TocItem } from
 const LOADERS: Record<Format, () => Promise<FormatModule>> = {
   md: () => import('./md'),
   txt: () => import('./txt'),
+  html: () => import('./html'),
   pdf: () => import('./pdf'),
   epub: () => import('./epub'),
   url: () => import('./website'),

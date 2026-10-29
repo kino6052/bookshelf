@@ -24,7 +24,8 @@ const SEEDS = [
   { shelf: '03-rationalists', file: 'Spinoza - Ethics, Part I.epub', pg: 919, src: 'pg919-images-3.epub', kind: 'copy', work: 'Ethics — Part 1', by: 'Benedict de Spinoza, tr. R. H. M. Elwes' },
   { shelf: '04-empiricists', file: 'Locke - An Essay Concerning Humane Understanding, Volume 1.txt', pg: 10615, src: 'pg10615.txt', kind: 'copy', work: 'An Essay Concerning Humane Understanding, Vol. 1', by: 'John Locke' },
   { shelf: '04-empiricists', file: 'Berkeley - A Treatise Concerning the Principles of Human Knowledge.epub', pg: 4723, src: 'pg4723-images-3.epub', kind: 'copy', work: 'A Treatise Concerning the Principles of Human Knowledge', by: 'George Berkeley' },
-  { shelf: '04-empiricists', file: 'Hume - An Enquiry Concerning Human Understanding.epub', pg: 9662, src: 'pg9662-images-3.epub', kind: 'copy', work: 'An Enquiry Concerning Human Understanding', by: 'David Hume' },
+  // Annotated by hand (a summary per paragraph), so the file in books/ is the source and is never rebuilt.
+  { shelf: '04-empiricists', file: 'Hume - An Enquiry Concerning Human Understanding.html', pg: 9662, src: 'pg9662-images-3.epub', kind: 'annotated', work: 'An Enquiry Concerning Human Understanding', by: 'David Hume' },
   { shelf: '05-kant-and-after', file: 'Kant - The Critique of Pure Reason.epub', pg: 4280, src: 'pg4280-images-3.epub', kind: 'copy', work: 'The Critique of Pure Reason', by: 'Immanuel Kant, tr. J. M. D. Meiklejohn' },
   { shelf: '05-kant-and-after', file: 'Kant - Fundamental Principles of the Metaphysic of Morals.pdf', pg: 5682, src: 'pg5682.txt', kind: 'pdf', work: 'Fundamental Principles of the Metaphysic of Morals', by: 'Immanuel Kant, tr. Thomas Kingsmill Abbott', startAt: 'PREFACE', title: 'Fundamental Principles of the Metaphysic of Morals', author: 'Immanuel Kant' },
   { shelf: '06-everything-else', file: 'Tolstoy - War and Peace.txt', pg: 2600, src: 'pg2600.txt', kind: 'copy', work: 'War and Peace', by: 'Leo Tolstoy, tr. Louise and Aylmer Maude' },
@@ -102,7 +103,7 @@ async function main() {
       await writeFile(out, pdf)
     }
     sources.push(s)
-    console.log('wrote', path.relative(process.cwd(), out))
+    console.log(s.kind === 'annotated' ? 'kept' : 'wrote', path.relative(process.cwd(), out))
   }
   for (const l of LINKS) {
     const dir = path.join(books, l.shelf)
@@ -113,7 +114,12 @@ async function main() {
   }
 
   const rows = sources.map((s) => {
-    const how = s.kind === 'copy' ? 'Gutenberg file, unchanged (Project Gutenberg License included in the file)' : s.kind === 'md' ? 'Converted to Markdown by `scripts/seed/build-seed.mjs`; Gutenberg header/footer removed' : 'Typeset to PDF by `scripts/seed/build-seed.mjs`; Gutenberg header/footer removed'
+    const how = {
+      copy: 'Gutenberg file, unchanged (Project Gutenberg License included in the file)',
+      md: 'Converted to Markdown by `scripts/seed/build-seed.mjs`; Gutenberg header/footer removed',
+      pdf: 'Typeset to PDF by `scripts/seed/build-seed.mjs`; Gutenberg header/footer removed',
+      annotated: 'Text of the Gutenberg epub as HTML, each paragraph folded to a new summary (kept in the repo, not rebuilt); Gutenberg header/footer and index removed',
+    }[s.kind]
     return `| \`${s.shelf}/${s.file}\` | ${s.work} | ${s.by} | [PG #${s.pg}](${PG(s.pg)}) | Public domain in the USA | ${how} |`
   })
   const linkRows = LINKS.map((l) => `| \`${l.shelf}/${l.file}\` | ${l.url} | link only (no content copied) | embeddable: no \`X-Frame-Options\` or CSP \`frame-ancestors\` when checked on 2026-10-04 → \`embed: ${l.embed}\` |`)

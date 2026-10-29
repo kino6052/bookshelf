@@ -560,6 +560,61 @@ kbd {
   text-align: center;
   letter-spacing: 0.04em;
 }
+/* html books: a folded paragraph is its summary line; open, the summary shrinks to a caption above the text. */
+.reader-html .about {
+  font-size: 0.85em;
+  color: var(--muted);
+}
+.reader-html details {
+  margin: 0 0 0.55em;
+}
+.reader-html details[open] {
+  margin-bottom: 1.1em;
+}
+.reader-html summary {
+  position: relative;
+  padding: 1px 4px 1px 1.1em;
+  border-radius: 4px;
+  list-style: none;
+  cursor: pointer;
+}
+.reader-html summary::-webkit-details-marker {
+  display: none;
+}
+.reader-html summary::before {
+  content: "›";
+  position: absolute;
+  left: 0.25em;
+  color: var(--accent);
+  transition: transform 0.15s;
+}
+.reader-html details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.reader-html summary:hover {
+  background: #f3efe5;
+}
+.reader-html summary:focus-visible {
+  outline: 3px solid #7fb1c9;
+  outline-offset: 2px;
+}
+.reader-html details[open] > summary {
+  margin-bottom: 0.3em;
+  font-size: 0.88em;
+  color: var(--muted);
+}
+.reader-html details > :not(summary) {
+  margin-left: 1.1em;
+}
+.reader-html .note {
+  font-size: 0.85em;
+  color: #4a4740;
+}
+.reader-html aside.note {
+  margin: 0 0 1em 1.1em;
+  padding-left: 0.8em;
+  border-left: 3px solid #e2dccd;
+}
 .reader[data-format="epub"] .reader-content,
 .reader[data-format="url"] .reader-content {
   overflow: hidden;
@@ -674,6 +729,7 @@ kbd {
   }
 }
 .reduced-motion .reader-root,
+.reduced-motion .reader-html summary::before,
 .reduced-motion .toast,
 .reduced-motion .progress-fill {
   transition: none;

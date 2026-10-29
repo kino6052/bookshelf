@@ -33,6 +33,7 @@ beforeAll(async () => {
       '03-rationalists': {
         'shelf.json': '{"title": "The Rationalists"}',
         'Spinoza - Ethics (Ἠθική) #1 & 50%.epub': 'PK',
+        'Hume - An Enquiry.html': '<!doctype html><title>Enquiry</title><details><summary>Gist</summary><p>Text</p></details>',
         'Descartes - Meditations.pdf': '%PDF-1.4',
         'Descartes - Meditations.pdf.meta.json': '{ not json',
         '孔子 - 論語.txt': 'x',
@@ -92,6 +93,10 @@ describe('scanLibrary', () => {
     const anon = book('01-ancient/Anonymous Fragments.md')!
     expect(anon.title).toBe('Anonymous Fragments')
     expect(anon.author).toBeUndefined()
+  })
+
+  it('takes .html files as html books, titled from the filename', () => {
+    expect(book('03-rationalists/Hume - An Enquiry.html')).toMatchObject({ format: 'html', title: 'An Enquiry', author: 'Hume' })
   })
 
   it('ignores dotfiles, system files, stray json, partial downloads and unknown extensions (warning once each)', () => {

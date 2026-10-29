@@ -2,7 +2,7 @@
 import { validateTarget } from './linkfile.ts'
 import type { Book, EmbedMode, Format, Library, Shelf, Track } from './types.ts'
 
-const FORMATS: readonly Format[] = ['md', 'txt', 'pdf', 'epub', 'url']
+const FORMATS: readonly Format[] = ['md', 'txt', 'html', 'pdf', 'epub', 'url']
 const EMBEDS: readonly EmbedMode[] = ['auto', 'iframe', 'link']
 const HEX = /^#[0-9a-f]{6}$/i
 

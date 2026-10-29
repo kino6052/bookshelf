@@ -1,6 +1,6 @@
 // The manifest contract shared by the scanner (Node) and the client.
 
-export type Format = 'md' | 'txt' | 'pdf' | 'epub' | 'url'
+export type Format = 'md' | 'txt' | 'html' | 'pdf' | 'epub' | 'url'
 export type EmbedMode = 'auto' | 'iframe' | 'link'
 
 export interface Book {
@@ -39,7 +39,7 @@ export interface Library {
   tracks: Track[]
 }
 
-export const BOOK_EXTENSIONS = ['md', 'txt', 'pdf', 'epub'] as const
+export const BOOK_EXTENSIONS = ['md', 'txt', 'html', 'pdf', 'epub'] as const
 export const LINK_EXTENSIONS = ['url', 'webloc'] as const
 export const MUSIC_EXTENSIONS = ['mp3', 'ogg', 'm4a', 'wav'] as const
 export const UPLOAD_EXTENSIONS = [...BOOK_EXTENSIONS, ...LINK_EXTENSIONS] as const

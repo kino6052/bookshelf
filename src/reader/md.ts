@@ -1,35 +1,16 @@
 // Markdown: markdown-it → DOMPurify → scrolled column. Front-matter stripped; TOC from headings.
-import DOMPurify from 'dompurify'
 import MarkdownIt from 'markdown-it'
 import { parseFrontMatter } from '../shared/frontmatter'
+import { sanitize } from './sanitize'
 import { scrollText } from './scrolltext'
 import { decodeText, EmptyBookError, type FormatModule, type FormatView, type TocItem } from './types'
 
 const md = new MarkdownIt({ html: true, linkify: true, typographer: true })
 
-let hooked = false
-function installHooks(): void {
-  if (hooked) return
-  hooked = true
-  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName === 'A') {
-      const href = node.getAttribute('href') ?? ''
-      if (href && !href.startsWith('#')) {
-        node.setAttribute('target', '_blank')
-        node.setAttribute('rel', 'noopener noreferrer')
-      }
-    }
-  })
-}
-
 /** Renders markdown to sanitized HTML. Exported for tests. */
 export function renderMarkdown(text: string): string {
-  installHooks()
   const { body } = parseFrontMatter(text)
-  return DOMPurify.sanitize(md.render(body), {
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'iframe', 'object', 'embed'],
-    FORBID_ATTR: ['style'],
-  })
+  return sanitize(md.render(body))
 }
 
 export const fontControls = true

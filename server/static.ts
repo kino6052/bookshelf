@@ -9,6 +9,7 @@ import { sendError, type Middleware } from './http.ts'
 const MIME: Record<string, string> = {
   md: 'text/markdown; charset=utf-8',
   txt: 'text/plain; charset=utf-8',
+  html: 'text/html; charset=utf-8',
   pdf: 'application/pdf',
   epub: 'application/epub+zip',
   url: 'text/plain; charset=utf-8',
@@ -72,6 +73,8 @@ async function serveFile(req: IncomingMessage, res: ServerResponse, file: string
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Last-Modified', st.mtime.toUTCString())
   res.setHeader('X-Content-Type-Options', 'nosniff')
+  // An html book opened straight from its URL gets an opaque origin and no scripts (the reader sanitizes its own copy).
+  if (extOf(file) === 'html') res.setHeader('Content-Security-Policy', 'sandbox')
   const range = req.headers.range
   let start = 0
   let end = st.size - 1

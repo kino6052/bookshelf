@@ -84,7 +84,7 @@ The dev plugin serves `/books/*` and `/music/*` (with HTTP Range support) and th
 - **Manifest** (`library.json`) comes from one pure function, `scanLibrary(dirs)`, used by both the dev server and the build. The client never scans.
 
 ```ts
-type Format = 'md' | 'txt' | 'pdf' | 'epub' | 'url'
+type Format = 'md' | 'txt' | 'html' | 'pdf' | 'epub' | 'url'
 interface Book  { id: string; shelfId: string; url: string; format: Format; title: string; author?: string; spineColor?: string; bytes: number; mtime: number
                   target?: string; embed?: 'auto' | 'iframe' | 'link' }   // target/embed: format 'url' only
 interface Shelf { id: string; title: string; order: number; books: Book[] }
@@ -131,6 +131,7 @@ interface Library { version: 1; shelves: Shelf[]; tracks: Track[] }
 |---|---|
 | md | markdown-it or marked → DOMPurify → scrolled typographic column (~65ch); front-matter stripped; TOC from headings |
 | txt | paragraphs split on blank lines, same typography; chunked rendering so multi-MB Gutenberg files stay smooth |
+| html | the file's `<body>` → DOMPurify → same column (head, styles and scripts dropped); `<details>` blocks fold to their `<summary>`, with "Expand all" / "Collapse all" in the toolbar; TOC from headings. Served with `CSP: sandbox` when opened directly |
 | pdf | `pdfjs-dist`, lazy-loaded; virtualized page canvases; fit-width and zoom; page jump. The worker must work in dev **and** in the production build |
 | epub | `epubjs`, lazy-loaded; fetched as an `ArrayBuffer`; TOC; prev/next; font size; scripts disabled |
 | url | **Website mode** (below): the site in a sandboxed iframe when embedding is allowed, otherwise a site card with "Open in new tab ↗" |
@@ -373,6 +374,7 @@ Per-book notes, ratings or read-status · in-book search · accounts, multiplaye
 | 2026-10-04 | Books opened from the List view skip the 3D pull-out animation; the list and reader sit above the Enter overlay (z-index 35/40) | Bug found in the subpath build: "Browse as a list" opened behind the overlay, and a list-opened book's 3D animation could block the next open while the tab wasn't rendering |
 | 2026-10-04 | Film grain moved into WebGL: one full-screen quad drawn last with per-pixel noise reseeded each frame (alpha ~8.5%), replacing the CSS layer | Owner: "make sure there is film grain" — the CSS overlay blend all but vanished on the near-white room and couldn't be verified in canvas captures. Visual check still pending |
 | 2026-10-04 | Pushed `main` to `origin` (github.com/kino6052/bookshelf) on request | Owner: "push to gh" (overrides §0.8 "never push") |
+| 2026-10-29 | Added html books (format `html`). Hume's Enquiry replaces its epub with an annotated html copy in which every paragraph and note is folded to a one-to-two-sentence summary, opening on the summaries | Owner asked for the Enquiry as a widget with each paragraph collapsible into a concise summary, summaries first, replacing the epub |
 
 ### Blockers
 *(none)*
