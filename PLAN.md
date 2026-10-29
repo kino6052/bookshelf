@@ -118,7 +118,7 @@ interface Library { version: 1; shelves: Shelf[]; tracks: Track[] }
 - **Collision:** circle (r = 0.3 m) against AABB colliders in XZ, with sliding. You can't leave the room, pass through furniture, or enter bookcases. No physics engine.
 - **Interaction ray:** one function that takes a ray source (screen centre | cursor | touch point). Max reach 3 m. A hovered book gets a visible highlight (e.g. lifts 1 cm and tints) and a label "Title — Author" (website books: "Title — domain ↗"). Click or `E` opens it.
 - **HUD:** crosshair (desktop, locked), hover label, Music (mute + volume), List view, Help. Authoring only: Add book.
-- **List view (also the fallback):** an HTML list of all shelves and books with a filter box. It opens any book in the reader (website books are marked ↗ with their domain), and "Locate" glides the camera to the book. If WebGL2 is unavailable or the context can't be created, the site opens in List view with a notice.
+- **List view (also the fallback):** an HTML list of all shelves and books with a filter box. It opens any book in the reader (website books are marked ↗ with their domain), and "Locate" glides the camera to the book. If WebGL2 is unavailable or the context can't be created, the site opens in List view with a notice. `?view=list` opens it in List view without building the room at all (the phone app opens the site this way, since touch walking isn't built yet). In List-only mode, closing a book returns to the list.
 - Respect `prefers-reduced-motion` (no sway or dust; tweens skipped or shortened).
 
 ### 3.4 Opening books and the reader

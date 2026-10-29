@@ -9,3 +9,6 @@ export const REDUCED_MOTION: boolean =
 
 /** `?webgl=0` in test builds simulates a browser without WebGL2 (exercises the List-view fallback). */
 export const FORCE_NO_WEBGL: boolean = TEST_HOOKS && params.get('webgl') === '0'
+
+/** `?view=list`: the library as a list only, with no 3D room (how the phone app opens it). */
+export const LIST_ONLY: boolean = params.get('view') === 'list'

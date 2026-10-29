@@ -3,7 +3,7 @@ import './ui/ui.css'
 import { App } from './app'
 import { Controller } from './controller'
 import { loadLibrary, onLibraryEvent } from './data/library'
-import { FORCE_NO_WEBGL, REDUCED_MOTION, TEST_HOOKS } from './env'
+import { FORCE_NO_WEBGL, LIST_ONLY, REDUCED_MOTION, TEST_HOOKS } from './env'
 import { installTestHook } from './dev/hook'
 import { isTouchDevice } from './input/touch'
 import { Reader } from './reader/reader'
@@ -50,14 +50,16 @@ async function boot(): Promise<void> {
   const count = library.shelves.reduce((n, s) => n + s.books.length, 0)
   const summary = `${count} ${count === 1 ? 'book' : 'books'} on ${library.shelves.length} ${library.shelves.length === 1 ? 'shelf' : 'shelves'}`
 
-  // No WebGL2 (or the context can't be created): the list view is the whole site.
-  const fallback = (why: string) => {
+  // No WebGL2 (or the context can't be created), or `?view=list`: the list view is the whole site, and closing a book returns to it.
+  const fallback = (why?: string) => {
     overlay.hide()
-    list.setNotice(`${why} Here is the library as a list instead.`)
+    list.setNotice(why && `${why} Here is the library as a list instead.`)
     list.modal.onClose = () => ui.append(reopen)
     const reopen = h('button', { class: 'btn btn-primary fallback-open', type: 'button', onclick: () => (reopen.remove(), list.show()) }, 'Show the list')
+    reader.onClose = () => (reopen.remove(), list.show())
     list.show()
   }
+  if (LIST_ONLY) return fallback()
   if (FORCE_NO_WEBGL || !webgl2Available()) return fallback('This browser can’t show the 3D room (WebGL2 is not available).')
   let app: App
   try {
